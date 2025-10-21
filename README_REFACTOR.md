@@ -26,29 +26,46 @@ Estamos implementando a **Regra de Dependência**, onde as camadas internas não
 
 1.  **Reorganização dos Pacotes**: Criamos a estrutura de pastas `domain`, `application` e `infrastructure` e movemos a maioria das classes existentes para seus devidos lugares.
 2.  **Criação dos Modelos de Domínio**: Criamos as classes de negócio puras (ex: `UserDomain.java`) dentro de `domain/entity/`.
-3.  **Refatoração da Camada de Persistência (`infrastructure/persistence`)**:
-    *   **Criação e Atualização de Mappers**: Criamos ou atualizamos todas as classes `*Mapper.java` em `infrastructure/persistence/mapper/` para traduzir dados entre as Entidades JPA e os Modelos de Domínio (incluindo `PlanMapper`, `PermissionMapper`, `ScopeDetailsMapper`).
-    *   **Definição e Implementação do Repository Pattern (Adaptadores)**: Todas as interfaces de repositório de domínio (`*Repository.java`) foram atualizadas com métodos de consulta customizados, e suas implementações (`*AdapterImpl.java`) na camada de infraestrutura foram finalizadas para usar os `JpaRepository`s e os `*Mapper`s correspondentes.
-    *   **Renomeação de Adaptadores**: O arquivo `CompanyJpaAdapterImpl.java` foi renomeado para `CompanyAdapterImpl.java` e suas funções foram ajustadas para seguir o padrão.
-4.  **Refatoração da Camada de Aplicação (`application/service`)**:
-    *   **Atualização de DTOs**: Todos os DTOs (`*DTO.java`) foram refatorados para trabalhar com as Entidades de Domínio (`*Domain.java`).
-    *   **Refatoração de Serviços**: Todos os serviços (`*ServiceImpl.java`) foram atualizados para:
-        *   Injetar as interfaces de repositório de domínio (`*Repository.java`) em vez dos `JpaRepository`s.
-        *   Operar exclusivamente com as Entidades de Domínio (`*Domain.java`).
-        *   Remover a lógica de mapeamento manual e de `Specification`.
-        *   Ajustar métodos auxiliares e limpar imports.
-    *   **Integração de Segurança**: Criamos `UserAuthDetails.java` para adaptar `UserDomain` à interface `UserDetails` do Spring Security, e `JWTUtil.java` foi atualizado para trabalhar com `UserDomain`.
-5.  **Revisão da Camada de Apresentação (`application/rest` - Controllers)**:
-    *   Todos os controllers foram revisados e confirmados como já alinhados com os princípios da Arquitetura Limpa.
-    *   Eles injetam as interfaces de serviço da camada de aplicação (`*Service.java`).
-    *   Operam exclusivamente com DTOs para entrada e saída de dados.
-    *   Delegam a lógica de negócio aos serviços da camada de aplicação.
-    *   Não possuem conhecimento direto das Entidades de Domínio ou da camada de Infraestrutura.
+3.  **Refatoração da Camada de Persistência (`infrastructure/persistence`)**: Concluída a transição para o padrão de repositório e adaptadores, com mapeamento entre entidades de domínio e JPA.
+4.  **Refatoração da Camada de Aplicação (`application/service`)**: Serviços atualizados para operar com entidades de domínio e injetar as interfaces de repositório de domínio.
+5.  **Revisão da Camada de Apresentação (`application/rest` - Controllers)**: Controllers revisados e alinhados com os princípios da Arquitetura Limpa.
+
+## 🚀 Refatoração do Sistema de Segurança (Permissão e Abrangência)
+
+Realizamos uma refatoração completa no sistema de segurança para torná-lo mais robusto, dinâmico e alinhado com a Arquitetura Limpa.
+
+### Visão Geral da Nova Arquitetura de Segurança
+
+A nova abordagem separa claramente as responsabilidades de autenticação, autorização e filtragem de dados:
+
+1.  **Autenticação**: A responsabilidade do `JWTAuthFilter.java` foi simplificada. Ele agora é responsável **exclusivamente** por validar o token JWT e configurar o `SecurityContextHolder` com o `UserDetails` do usuário autenticado. Toda a lógica de verificação de permissão baseada em URL foi removida.
+
+2.  **Autorização (Permissões)**: A autorização agora é declarativa e baseada em perfis. Utilizamos as anotações `@PreAuthorize` do Spring Security nos métodos dos controllers. A lógica de verificação é centralizada em um `CustomPermissionEvaluator.java`, que consulta o `PerfilPermissaoServiceImpl` para verificar, em tempo de execução e via banco de dados, se o perfil do usuário tem a permissão necessária (ex: 'create', 'list', 'find') para um determinado recurso (ex: 'USUARIO', 'EMPRESA').
+
+3.  **Abrangência (Filtragem de Dados)**: A lógica de filtragem de dados, que define *quais* registros um usuário pode ver, foi movida para a camada de serviço (`*ServiceImpl`). Utilizamos o padrão **Specification** do Spring Data JPA para construir consultas dinâmicas. Os serviços agora obtêm o `Scope` do usuário autenticado, consultam os `ScopeDetails` para obter as regras de filtragem (armazenadas como JSON no banco de dados) e aplicam essas regras dinamicamente às consultas, garantindo que apenas os dados dentro da abrangência do usuário sejam retornados.
+
+### Componentes Implementados
+
+-   **`CustomPermissionEvaluator.java`**: Nova classe na camada de infraestrutura que implementa a lógica de autorização customizada para o `@PreAuthorize`.
+-   **`*Specifications.java`** (ex: `UserSpecifications.java`, `CompanySpecifications.java`): Novas classes na camada de infraestrutura que constroem `Specification` para filtragem dinâmica, incluindo a aplicação dos filtros de abrangência.
+-   **`*JpaRepository.java`**: As interfaces de repositório JPA (ex: `UserJpaRepository`, `CompanyJpaRepository`) foram atualizadas para estender `JpaSpecificationExecutor`, permitindo a execução de queries baseadas em `Specification`.
+-   **`*ServiceImpl.java`**: Os serviços (ex: `UsuarioServiceImpl`, `EmpresaServiceImpl`) foram refatorados para usar as `Specifications` e aplicar a lógica de filtragem de abrangência.
+-   **`CreateAdminHandler.java` e `ResourceInitializer.java`**: A lógica de inicialização foi ajustada para criar recursos padrão e para não depender de um contexto de segurança autenticado durante a inicialização da aplicação.
+
+### Correções de Entidades
+
+-   **Palavras Reservadas do SQL**: Corrigimos as entidades JPA para evitar conflitos com palavras reservadas do SQL. A tabela `user` foi renomeada para `app_user` (via `@Table(name = "app_user")` na entidade `User.java`) e as colunas de ação na entidade `Permission.java` foram renomeadas (ex: de `create` para `can_create`).
+-   **Nomes de Propriedades**: Corrigimos os nomes de métodos em várias interfaces `JpaRepository` (ex: `UserJpaRepository`, `ProfileJpaRepository`) para corresponderem aos nomes corretos das propriedades nas entidades JPA (ex: `findByPernom` para `findByName`), resolvendo erros de criação de query do Spring Data.
 
 ## ✅ Status Atual
 
-As camadas de Domínio, Infraestrutura (Persistência), Aplicação (Serviços) e Apresentação (Controllers) foram completamente refatoradas ou revisadas para aderir aos princípios da Arquitetura Limpa. O projeto está agora com uma estrutura de camadas bem definida e desacoplada.
+As principais camadas da arquitetura limpa foram implementadas e a refatoração do sistema de segurança e abrangência foi concluída. O projeto agora possui um mecanismo de controle de acesso dinâmico, configurável via banco de dados e alinhado com os princípios de Clean Code e Arquitetura Hexagonal.
 
 ## 🚀 Próximo Passo Imediato
 
-Com as principais camadas da arquitetura limpa implementadas e revisadas, o próximo passo é focar na **validação e testes** para garantir que todas as funcionalidades continuem operando corretamente e que os novos princípios arquiteturais estejam sendo seguidos. Além disso, podemos começar a explorar a implementação de **casos de uso** mais complexos ou a adição de novas funcionalidades, sempre mantendo a aderência à arquitetura definida.
+Com a nova arquitetura de segurança estabelecida, os próximos passos são:
+
+1.  **Aplicar o Padrão de Abrangência**: Estender a implementação da filtragem de dados baseada em `Specification` para os serviços restantes (ex: `PlantaServiceImpl`, `AbrangenciaServiceImpl`, etc.).
+2.  **Popular o Banco de Dados**: Garantir que as tabelas `resources` e `scope_details` estejam corretamente populadas com os nomes dos recursos e as regras de filtragem JSON para que a segurança funcione como esperado.
+3.  **Testes Abrangentes**: Criar testes de integração e unitários para validar exaustivamente as novas regras de permissão (`@PreAuthorize`) e a lógica de filtragem de abrangência nos serviços.
+4.  **Limpeza Final**: Remover completamente as classes `PermissaoHandler` e `URLValidator`, que se tornaram redundantes.
