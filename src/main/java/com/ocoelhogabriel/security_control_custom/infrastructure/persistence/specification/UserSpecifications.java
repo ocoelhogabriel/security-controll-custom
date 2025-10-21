@@ -1,49 +1,49 @@
 package com.ocoelhogabriel.security_control_custom.infrastructure.persistence.specification;
 
-import com.ocoelhogabriel.security_control_custom.domain.entity.UserDomain;
-import jakarta.persistence.criteria.Predicate;
+import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.User;
 import org.springframework.data.jpa.domain.Specification;
 
+import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class UserSpecifications {
 
-    public static Specification<UserDomain> withScopeFilters(Map<String, Object> filters) {
+    public static Specification<User> withScopeFilters(Map<String, Object> scopeFilters) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Exemplo: Filtrar por companyId
-            if (filters.containsKey("companyId")) {
-                Object companyIdObj = filters.get("companyId");
-                if (companyIdObj instanceof Long) {
-                    Long companyId = (Long) companyIdObj;
-                    predicates.add(criteriaBuilder.equal(root.get("companyDomain").get("id"), companyId));
-                } else if (companyIdObj instanceof Integer) { // Handle Integer if JSON parsing returns Integer
-                    Long companyId = ((Integer) companyIdObj).longValue();
-                    predicates.add(criteriaBuilder.equal(root.get("companyDomain").get("id"), companyId));
+            if (scopeFilters != null && scopeFilters.containsKey("companyId")) {
+                Object rawValue = scopeFilters.get("companyId");
+                if (rawValue instanceof Collection) {
+                    @SuppressWarnings("unchecked")
+                    Collection<?> rawIds = (Collection<?>) rawValue;
+                    if (!rawIds.isEmpty()) {
+                        List<Long> ids = rawIds.stream()
+                                .map(obj -> Long.valueOf(String.valueOf(obj).split("\\.")[0]))
+                                .collect(Collectors.toList());
+                        predicates.add(root.get("company").get("id").in(ids));
+                    }
                 }
             }
 
-            // Adicione outras condições de filtro aqui conforme necessário
-            // Ex: if (filters.containsKey("plantId")) { ... }
+            if (predicates.isEmpty()) {
+                return criteriaBuilder.conjunction(); // No filters, return all
+            }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }
 
-    public static Specification<UserDomain> withLoginFilter(String login) {
+    public static Specification<User> withLoginFilter(String login) {
         return (root, query, criteriaBuilder) -> {
-            if (login == null || login.isEmpty()) {
-                return criteriaBuilder.conjunction(); // Retorna uma condição verdadeira se o filtro estiver vazio
+            if (login == null || login.trim().isEmpty()) {
+                return criteriaBuilder.conjunction();
             }
             return criteriaBuilder.like(criteriaBuilder.lower(root.get("login")), "%" + login.toLowerCase() + "%");
         };
-    }
-
-    // Combine specifications
-    public static Specification<UserDomain> combine(Specification<UserDomain> spec1, Specification<UserDomain> spec2) {
-        return Specification.where(spec1).and(spec2);
     }
 }

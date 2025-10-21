@@ -1,42 +1,35 @@
 package com.ocoelhogabriel.security_control_custom.application.service;
 
-import java.io.IOException;
-import java.lang.reflect.Type;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.ocoelhogabriel.security_control_custom.application.dto.EmpresaDTO;
+import com.ocoelhogabriel.security_control_custom.application.dto.EmpresaModel;
 import com.ocoelhogabriel.security_control_custom.domain.entity.CompanyDomain;
-import com.ocoelhogabriel.security_control_custom.domain.entity.ResourcesDomain;
-import com.ocoelhogabriel.security_control_custom.domain.entity.ScopeDetailsDomain;
 import com.ocoelhogabriel.security_control_custom.domain.entity.UserDomain;
 import com.ocoelhogabriel.security_control_custom.domain.repository.CompanyRepository;
 import com.ocoelhogabriel.security_control_custom.domain.repository.ResourcesRepository;
 import com.ocoelhogabriel.security_control_custom.domain.repository.ScopeDetailsRepository;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.specification.CompanySpecifications;
+import com.ocoelhogabriel.security_control_custom.domain.service.IEmpresaService;
+import com.ocoelhogabriel.security_control_custom.infrastructure.utils.ScopeUtils;
+import com.ocoelhogabriel.security_control_custom.infrastructure.utils.message.MessageResponse;
+import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import com.ocoelhogabriel.security_control_custom.application.dto.EmpresaModel;
-import com.ocoelhogabriel.security_control_custom.application.dto.EmpresaDTO;
-import com.ocoelhogabriel.security_control_custom.domain.service.IEmpresaService;
-import com.ocoelhogabriel.security_control_custom.infrastructure.utils.message.MessageResponse;
-import jakarta.persistence.EntityNotFoundException;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class EmpresaServiceImpl implements IEmpresaService {
@@ -59,10 +52,7 @@ public class EmpresaServiceImpl implements IEmpresaService {
     @Override
     public ResponseEntity<Void> empresaDeleteById(Long codigo) throws IOException {
         try {
-            var empresa = findByIdEntity(codigo);
-            if (empresa == null)
-                throw new EntityNotFoundException("Empresa não encontrada com o código: " + codigo);
-
+            CompanyDomain empresa = findByIdEntity(codigo);
             companyRepository.deleteById(empresa.getId());
             return MessageResponse.noContent();
         } catch (EmptyResultDataAccessException e) {
@@ -72,37 +62,26 @@ public class EmpresaServiceImpl implements IEmpresaService {
     }
 
     @Override
-    public ResponseEntity<Page<EmpresaDTO>> empresaFindAllPaginado(String nome, Pageable pageable) throws IOException {
+    public ResponseEntity<Page<EmpresaDTO>> empresaFindAllPaginado(String nome, Pageable pageable) {
         Objects.requireNonNull(pageable, "Pageable da Empresa está nulo.");
-
         Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
-        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME);
-
-        Specification<CompanyDomain> finalSpec = CompanySpecifications.withScopeFilters(scopeFilters);
-
-        if (nome != null && !nome.isEmpty()) {
-            finalSpec = finalSpec.and(CompanySpecifications.withNameLike(nome));
-        }
-
-        Page<CompanyDomain> result = companyRepository.findAll(pageable);
+        Map<String, Object> scopeFilters = ScopeUtils.getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME, resourcesRepository, scopeDetailsRepository, gson);
+        Page<CompanyDomain> result = companyRepository.findAll(pageable, nome, scopeFilters);
         return MessageResponse.success(result.map(EmpresaDTO::new));
     }
 
     @Override
     public List<EmpresaDTO> sendListAbrangenciaEmpresaDTO() {
         Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
-        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME);
-        Specification<CompanyDomain> finalSpec = CompanySpecifications.withScopeFilters(scopeFilters);
-        return companyRepository.findAll().stream().map(EmpresaDTO::new).toList();
+        Map<String, Object> scopeFilters = ScopeUtils.getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME, resourcesRepository, scopeDetailsRepository, gson);
+        return companyRepository.findAll(scopeFilters).stream().map(EmpresaDTO::new).toList();
     }
 
     @Override
-    public ResponseEntity<List<EmpresaDTO>> empresaFindAll() throws IOException {
+    public ResponseEntity<List<EmpresaDTO>> empresaFindAll() {
         Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
-        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME);
-        Specification<CompanyDomain> finalSpec = CompanySpecifications.withScopeFilters(scopeFilters);
-
-        List<CompanyDomain> result = companyRepository.findAll();
+        Map<String, Object> scopeFilters = ScopeUtils.getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME, resourcesRepository, scopeDetailsRepository, gson);
+        List<CompanyDomain> result = companyRepository.findAll(scopeFilters);
         return MessageResponse.success(result.stream().map(EmpresaDTO::new).toList());
     }
 
@@ -146,18 +125,12 @@ public class EmpresaServiceImpl implements IEmpresaService {
     @Override
     public ResponseEntity<EmpresaDTO> findByIdApi(Long codigo) throws IOException {
         CompanyDomain empresa = findByIdEntity(codigo);
-        if (empresa == null) {
-            throw new EntityNotFoundException("Empresa não encontrada ou fora da sua abrangência.");
-        }
         return MessageResponse.success(new EmpresaDTO(empresa));
     }
 
     @Override
     public ResponseEntity<EmpresaDTO> empresaFindByCnpjApi(Long cnpj) throws IOException {
         CompanyDomain company = empresaFindByCnpjEntity(cnpj);
-        if (company == null) {
-            throw new EntityNotFoundException("Empresa não encontrada ou fora da sua abrangência.");
-        }
         return MessageResponse.success(new EmpresaDTO(company));
     }
 
@@ -169,91 +142,27 @@ public class EmpresaServiceImpl implements IEmpresaService {
     public CompanyDomain empresaFindByCnpjEntity(Long cnpj) {
         Objects.requireNonNull(cnpj, "CNPJ da Empresa está nulo.");
         Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
-        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME);
-
-        Specification<CompanyDomain> finalSpec = CompanySpecifications.withScopeFilters(scopeFilters)
-                .and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("document"), cnpj));
-
-        return companyRepository.findByDocument(cnpj).orElse(null);
-    }
-
-    // Método para uso interno (ex: CreateAdminHandler) que não aplica filtros de abrangência
-    public CompanyDomain empresaFindByCnpjEntityInternal(Long cnpj) {
-        Objects.requireNonNull(cnpj, "CNPJ da Empresa está nulo.");
-        return companyRepository.findByDocument(cnpj).orElse(null);
+        Map<String, Object> scopeFilters = ScopeUtils.getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME, resourcesRepository, scopeDetailsRepository, gson);
+        return companyRepository.findByDocument(cnpj, scopeFilters).orElse(null);
     }
 
     public CompanyDomain findByIdEntity(@NonNull Long codigo) {
         Objects.requireNonNull(codigo, "Código da Empresa está nulo.");
         Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
-        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME);
-
-        Specification<CompanyDomain> finalSpec = CompanySpecifications.withScopeFilters(scopeFilters)
-                .and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("id"), codigo));
-
-        return companyRepository.findById(codigo).orElse(null);
+        Map<String, Object> scopeFilters = ScopeUtils.getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME, resourcesRepository, scopeDetailsRepository, gson);
+        return companyRepository.findById(codigo, scopeFilters)
+                .orElseThrow(() -> new EntityNotFoundException("Empresa não encontrada com o código: " + codigo + " ou fora da sua abrangência."));
     }
 
-    // Método para uso interno (ex: CreateAdminHandler) que não aplica filtros de abrangência
-    public CompanyDomain findByIdEntityInternal(@NonNull Long codigo) {
-        Objects.requireNonNull(codigo, "Código da Empresa está nulo.");
-        return companyRepository.findById(codigo).orElse(null);
+    public CompanyDomain findByDocumentInternal(Long cnpj) {
+        return companyRepository.findByDocument(cnpj).orElse(null);
     }
 
-    /**
-     * Retorna o Optional<UserDomain> do usuário autenticado.
-     *
-     * @return Optional<UserDomain> do usuário autenticado, ou Optional.empty() se não houver usuário autenticado ou for inválido.
-     */
     private Optional<UserDomain> getAuthenticatedUserDomain() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof UserDomain)) {
             return Optional.empty();
         }
         return Optional.of((UserDomain) authentication.getPrincipal());
-    }
-
-    /**
-     * Extrai os filtros de abrangência para um dado recurso e usuário.
-     *
-     * @param authenticatedUser Optional<UserDomain> do usuário autenticado.
-     * @param resourceName      O nome do recurso (ex: "USUARIO", "EMPRESA").
-     * @return Um mapa de filtros (ex: {"companyId": 1, "plantId": [1, 2]}).
-     */
-    private Map<String, Object> getScopeFilters(Optional<UserDomain> authenticatedUser, String resourceName) {
-        if (authenticatedUser.isEmpty() || authenticatedUser.get().getScopeDomain() == null || resourceName == null) {
-            return Collections.emptyMap();
-        }
-
-        UserDomain user = authenticatedUser.get();
-
-        ResourcesDomain resource = resourcesRepository.findByName(resourceName)
-                .orElseThrow(() -> new EntityNotFoundException("Recurso não encontrado: " + resourceName));
-
-        Optional<ScopeDetailsDomain> scopeDetailsOptional = scopeDetailsRepository.findByScopeIdAndResourceId(user.getScopeDomain().getId(),
-                resource.getId());
-
-        if (scopeDetailsOptional.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        ScopeDetailsDomain scopeDetails = scopeDetailsOptional.get();
-        String abddatJson = scopeDetails.getData();
-
-        if (abddatJson == null || abddatJson.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        Map<String, Object> filters = new HashMap<>();
-        try {
-            Type type = new TypeToken<Map<String, Object>>() {
-            }.getType();
-            filters = gson.fromJson(abddatJson, type);
-        } catch (Exception e) {
-            log.error("Erro ao parsear abddat JSON para filtros de abrangência: " + abddatJson, e);
-            return Collections.emptyMap();
-        }
-
-        return filters;
     }
 }

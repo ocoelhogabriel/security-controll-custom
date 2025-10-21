@@ -7,7 +7,6 @@ import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.map
 import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.repository.PlanJpaRepository;
 import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.specification.PlanSpecifications;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,15 +16,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@Primary
 @Repository
-public class PlantAdapterImpl implements PlanRepository {
+public class PlanAdapterImpl implements PlanRepository {
 
     private final PlanJpaRepository planJpaRepository;
     private final PlanMapper planMapper;
 
     @Autowired
-    public PlantAdapterImpl(PlanJpaRepository planJpaRepository, PlanMapper planMapper) {
+    public PlanAdapterImpl(PlanJpaRepository planJpaRepository, PlanMapper planMapper) {
         this.planJpaRepository = planJpaRepository;
         this.planMapper = planMapper;
     }
@@ -69,8 +67,7 @@ public class PlantAdapterImpl implements PlanRepository {
 
     @Override
     public Page<PlanDomain> findAll(Pageable pageable, String name, Map<String, Object> scopeFilters) {
-        Specification<Plan> spec = Specification.where(PlanSpecifications.withScopeFilters(scopeFilters))
-                                              .and(PlanSpecifications.withNameLike(name));
+        Specification<Plan> spec = Specification.where(PlanSpecifications.withScopeFilters(scopeFilters)).and(PlanSpecifications.withNameLike(name));
         return planJpaRepository.findAll(spec, pageable).map(planMapper::toDomain);
     }
 
@@ -83,7 +80,7 @@ public class PlantAdapterImpl implements PlanRepository {
     @Override
     public Optional<PlanDomain> findById(Long id, Map<String, Object> scopeFilters) {
         Specification<Plan> spec = Specification.where(PlanSpecifications.withScopeFilters(scopeFilters))
-                                              .and((root, query, cb) -> cb.equal(root.get("id"), id));
+                .and((root, query, cb) -> cb.equal(root.get("id"), id));
         return planJpaRepository.findOne(spec).map(planMapper::toDomain);
     }
 

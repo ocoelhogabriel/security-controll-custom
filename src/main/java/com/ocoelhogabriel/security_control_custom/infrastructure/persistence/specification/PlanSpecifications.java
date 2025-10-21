@@ -1,6 +1,6 @@
 package com.ocoelhogabriel.security_control_custom.infrastructure.persistence.specification;
 
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Company;
+import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Plan;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.Collection;
@@ -8,12 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class CompanySpecifications {
+public class PlanSpecifications {
 
-    public static Specification<Company> withScopeFilters(Map<String, Object> scopeFilters) {
+    public static Specification<Plan> withScopeFilters(Map<String, Object> scopeFilters) {
         return (root, query, criteriaBuilder) -> {
-            if (scopeFilters != null && scopeFilters.containsKey("companyId")) {
-                Object rawValue = scopeFilters.get("companyId");
+            if (scopeFilters != null && scopeFilters.containsKey("plantId")) {
+                Object rawValue = scopeFilters.get("plantId");
                 if (rawValue instanceof Collection) {
                     @SuppressWarnings("unchecked")
                     Collection<?> rawIds = (Collection<?>) rawValue;
@@ -26,11 +26,11 @@ public class CompanySpecifications {
                     return root.get("id").in(ids);
                 }
             }
-            return criteriaBuilder.conjunction(); // No companyId filter, so no restriction from this spec.
+            return criteriaBuilder.conjunction(); // No plantId filter, so no restriction from this spec.
         };
     }
 
-    public static Specification<Company> withNameLike(String name) {
+    public static Specification<Plan> withNameLike(String name) {
         return (root, query, criteriaBuilder) -> {
             if (name == null || name.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();

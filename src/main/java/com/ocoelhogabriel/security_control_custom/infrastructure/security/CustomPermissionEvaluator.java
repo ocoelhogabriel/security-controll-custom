@@ -17,22 +17,17 @@ public class CustomPermissionEvaluator implements PermissionEvaluator {
 
     @Override
     public boolean hasPermission(Authentication authentication, Object targetDomainObject, Object permission) {
-        if ((authentication == null) || !(targetDomainObject instanceof String) || !(permission instanceof String)) {
+        if ((authentication == null) || !(targetDomainObject instanceof String targetType) || !(permission instanceof String action)) {
             return false;
         }
-        String targetType = (String) targetDomainObject;
-        String action = (String) permission;
         return hasPermission(authentication, null, targetType, action);
     }
 
     @Override
     public boolean hasPermission(Authentication authentication, Serializable targetId, String targetType, Object permission) {
-        if ((authentication == null) || !(authentication.getPrincipal() instanceof User) || !(permission instanceof String)) {
+        if ((authentication == null) || !(authentication.getPrincipal() instanceof User user) || !(permission instanceof String action)) {
             return false;
         }
-
-        User user = (User) authentication.getPrincipal();
-        String action = (String) permission;
 
         // targetType aqui será o nome do recurso (ex: "USUARIO", "EMPRESA", "PLANTAS")
         // action será a operação (ex: "list", "find", "create", "edit", "delete")

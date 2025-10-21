@@ -10,6 +10,6 @@ public class DefaultController {
 
 	@GetMapping("/")
 	public RedirectView redirectWithUsingRedirectView(RedirectAttributes attributes) {
-		return new RedirectView("/siloapi/swagger-ui/index.html#");
+		return new RedirectView("/swagger-ui/index.html#");
 	}
 }

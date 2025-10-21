@@ -7,8 +7,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import com.ocoelhogabriel.security_control_custom.application.dto.AuthModel;
 
 public interface IAutentication extends UserDetailsService {
-	public String generateToken(AuthModel authToken) throws IOException;
+	String generateToken(AuthModel authToken) throws IOException;
 
-	public String validateToken(String token);
+	String validateToken(String token);
 
 }

@@ -1,5 +1,7 @@
 package com.ocoelhogabriel.security_control_custom.infrastructure.config;
 
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springdoc.core.models.GroupedOpenApi;
@@ -7,8 +9,7 @@ import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
+import java.util.Optional;
 
 @Configuration
 public class OpenApiConfig {
@@ -20,10 +21,18 @@ public class OpenApiConfig {
 	}
 
 	@Bean
-	OpenAPI myOpenAPI(BuildProperties env) {
-		String version = env.getVersion();
-		String name = env.getName();
-		logger.info("Info OpenApi Config, Name Package: " + env.getArtifact() + ", version - " + version + " - Name: " + name);
+	OpenAPI myOpenAPI(Optional<BuildProperties> buildProperties) {
+		String version = "1.0.0"; // Default version
+		String name = "security-controll-custom"; // Default name
+
+		if (buildProperties.isPresent()) {
+			BuildProperties properties = buildProperties.get();
+			version = properties.getVersion();
+			name = properties.getName();
+			logger.info("OpenAPI Config using BuildProperties: Name={}, Version={}", name, version);
+		} else {
+			logger.warn("BuildProperties not found. Using default OpenAPI info. Name={}, Version={}", name, version);
+		}
 
 		return new OpenAPI().info(new Info().title(name).version(version).description("Silo API backend."));
 	}

@@ -14,11 +14,11 @@ import com.ocoelhogabriel.security_control_custom.application.dto.TokenValidatio
 import com.ocoelhogabriel.security_control_custom.application.dto.GenerateTokenRecords;
 
 public interface IAuthService extends UserDetailsService {
-	public GenerateTokenRecords getToken(AuthModel authToken) throws IOException;
+	GenerateTokenRecords getToken(AuthModel authToken) throws IOException;
 
-	public String validToken(String token);
+	String validToken(String token);
 
-	public Instant validateTimeToken(String token);
+	Instant validateTimeToken(String token);
 
 	ResponseEntity<ResponseAuthDTO> refreshToken(String token);
 

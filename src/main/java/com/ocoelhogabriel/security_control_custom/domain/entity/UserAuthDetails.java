@@ -6,16 +6,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
-public class UserAuthDetails implements UserDetails {
-
-    private final UserDomain userDomain;
-
-    public UserAuthDetails(UserDomain userDomain) {
-        this.userDomain = userDomain;
-    }
+public record UserAuthDetails(UserDomain userDomain) implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -54,9 +46,5 @@ public class UserAuthDetails implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true; // Or implement actual logic from UserDomain
-    }
-
-    public UserDomain getUserDomain() {
-        return userDomain;
     }
 }

@@ -54,19 +54,9 @@ public class CompanyDomain {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("CompanyDomain [id=");
-        builder.append(id);
-        builder.append(", document=");
-        builder.append(document);
-        builder.append(", name=");
-        builder.append(name);
-        builder.append(", tradeName=");
-        builder.append(tradeName);
-        builder.append(", contact=");
-        builder.append(contact);
-        builder.append("]");
-        return builder.toString();
+        String builder =
+                "CompanyDomain [id=" + id + ", document=" + document + ", name=" + name + ", tradeName=" + tradeName + ", contact=" + contact + "]";
+        return builder;
     }
 
     public CompanyDomain(Long id, Long document, String name, String tradeName, String contact) {

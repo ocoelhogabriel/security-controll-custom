@@ -60,19 +60,9 @@ public class EmpresaDTO extends CodigoExtends {
 
 	@Override
 	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("EmpresaDto [codigo=");
-		builder.append(getCodigo());
-		builder.append(", cnpj=");
-		builder.append(cnpj);
-		builder.append(", nome=");
-		builder.append(nome);
-		builder.append(", nomeFantasia=");
-		builder.append(nomeFantasia);
-		builder.append(", telefone=");
-		builder.append(telefone);
-		builder.append("]");
-		return builder.toString();
+        String builder = "EmpresaDto [codigo=" + getCodigo() + ", cnpj=" + cnpj + ", nome=" + nome + ", nomeFantasia=" + nomeFantasia + ", telefone="
+                + telefone + "]";
+		return builder;
 	}
 
 	public EmpresaDTO(Long codigo, Long cnpj, String nome, String nomeFantasia, String telefone) {

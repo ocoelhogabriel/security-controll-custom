@@ -13,7 +13,7 @@
     <artifactId>security_control_custom</artifactId>
     <version>1.1.0</version>
     <packaging>war</packaging>
-    <name>Silo Api</name>
+    <name>Security Custom Control</name>
     <description>Demo project for Spring Boot</description>
     <properties>
         <java.version>17</java.version>
@@ -60,28 +60,19 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
-            <scopeDomain>runtime</scopeDomain>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <scopeDomain>runtime</scopeDomain>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-tomcat</artifactId>
-            <scopeDomain>provided</scopeDomain>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <scopeDomain>test</scopeDomain>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
-            <scopeDomain>test</scopeDomain>
         </dependency>
     </dependencies>
 

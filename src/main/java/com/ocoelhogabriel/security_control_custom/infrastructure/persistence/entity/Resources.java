@@ -66,13 +66,8 @@ public class Resources implements Serializable {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Recurso [");
-        builder.append("id=").append(id).append(", ");
-        builder.append("name=").append(name).append(", ");
-        builder.append("description=").append(description);
-        builder.append("]");
-        return builder.toString();
+        String builder = "Recurso [" + "id=" + id + ", " + "name=" + name + ", " + "description=" + description + "]";
+        return builder;
     }
 
     public Resources(Long id, String name, String description) {

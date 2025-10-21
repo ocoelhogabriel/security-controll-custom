@@ -1,9 +1,14 @@
 package com.ocoelhogabriel.security_control_custom.application.handler;
 
-import java.util.List;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ocoelhogabriel.security_control_custom.application.dto.CheckAbrangenciaRec;
+import com.ocoelhogabriel.security_control_custom.application.service.AbrangenciaServiceImpl;
+import com.ocoelhogabriel.security_control_custom.application.service.RecursoServiceImpl;
 import com.ocoelhogabriel.security_control_custom.application.service.UsuarioServiceImpl;
 import com.ocoelhogabriel.security_control_custom.domain.entity.UserDomain;
+import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,15 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.User;
-import com.ocoelhogabriel.security_control_custom.application.dto.CheckAbrangenciaRec;
-import com.ocoelhogabriel.security_control_custom.application.service.AbrangenciaServiceImpl;
-import com.ocoelhogabriel.security_control_custom.application.service.RecursoServiceImpl;
-import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
 
 @Component
 public class AbrangenciaHandler {
@@ -40,9 +37,7 @@ public class AbrangenciaHandler {
     public CheckAbrangenciaRec checkAbrangencia(String text) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUserName = authentication.getName();
-        UserDomain user = usuarioService.findLoginEntity(currentUserName);
-        if (user == null)
-            throw new EntityNotFoundException("Usuário não encontrado: " + currentUserName);
+        UserDomain user = usuarioService.findLogin(currentUserName);
 
         var recurso = recursoService.findByIdEntity(text);
         var abrangencia = abrangenciaService.findByAbrangenciaAndRecursoContainingAbrangencia(user.getScopeDomain().getId(), recurso.getName());
