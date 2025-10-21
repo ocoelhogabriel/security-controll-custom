@@ -22,32 +22,33 @@ Estamos implementando a **Regra de Dependência**, onde as camadas internas não
 -   **📁 `application`**: A orquestração. Contém os casos de uso (`*ServiceImpl`), DTOs e as interfaces da API (`*Controller`). Depende apenas do `domain`.
 -   **📁 `infrastructure`**: Os detalhes técnicos. Contém as configurações do Spring, as entidades JPA, as implementações dos repositórios (Adaptadores) e a comunicação com o mundo externo. Depende do `application` e do `domain`.
 
-## ✅ O Que Já Fizemos (Nosso Progresso)
+## ✅ O Que Já Fizemos (Nosso Progresso Atualizado)
 
 1.  **Reorganização dos Pacotes**: Criamos a estrutura de pastas `domain`, `application` e `infrastructure` e movemos a maioria das classes existentes para seus devidos lugares.
 2.  **Criação dos Modelos de Domínio**: Criamos as classes de negócio puras (ex: `UserDomain.java`) dentro de `domain/entity/`.
-3.  **Criação dos Mappers**: Criamos as classes `*Mapper.java` em `infrastructure/persistence/mapper/` para traduzir dados entre as Entidades JPA e os Modelos de Domínio.
-4.  **Definição do Repository Pattern**: Demos o passo mais importante para `User`:
-    *   **Renomeamos** a interface JPA para `UsuarioJpaRepository.java`.
-    *   **Criamos a "Porta" de Domínio**: Uma nova interface `domain/repository/UsuarioRepository.java` que só fala a língua do domínio (usa e retorna `UserDomain`).
-    *   **Criamos o "Adaptador" de Infraestrutura**: A classe `infrastructure/persistence/repository/UsuarioRepositoryImpl.java` que implementa a interface do domínio, usando o `JpaRepository` e o `Mapper` para fazer a tradução.
+3.  **Refatoração da Camada de Persistência (`infrastructure/persistence`)**:
+    *   **Criação e Atualização de Mappers**: Criamos ou atualizamos todas as classes `*Mapper.java` em `infrastructure/persistence/mapper/` para traduzir dados entre as Entidades JPA e os Modelos de Domínio (incluindo `PlanMapper`, `PermissionMapper`, `ScopeDetailsMapper`).
+    *   **Definição e Implementação do Repository Pattern (Adaptadores)**: Todas as interfaces de repositório de domínio (`*Repository.java`) foram atualizadas com métodos de consulta customizados, e suas implementações (`*AdapterImpl.java`) na camada de infraestrutura foram finalizadas para usar os `JpaRepository`s e os `*Mapper`s correspondentes.
+    *   **Renomeação de Adaptadores**: O arquivo `CompanyJpaAdapterImpl.java` foi renomeado para `CompanyAdapterImpl.java` e suas funções foram ajustadas para seguir o padrão.
+4.  **Refatoração da Camada de Aplicação (`application/service`)**:
+    *   **Atualização de DTOs**: Todos os DTOs (`*DTO.java`) foram refatorados para trabalhar com as Entidades de Domínio (`*Domain.java`).
+    *   **Refatoração de Serviços**: Todos os serviços (`*ServiceImpl.java`) foram atualizados para:
+        *   Injetar as interfaces de repositório de domínio (`*Repository.java`) em vez dos `JpaRepository`s.
+        *   Operar exclusivamente com as Entidades de Domínio (`*Domain.java`).
+        *   Remover a lógica de mapeamento manual e de `Specification`.
+        *   Ajustar métodos auxiliares e limpar imports.
+    *   **Integração de Segurança**: Criamos `UserAuthDetails.java` para adaptar `UserDomain` à interface `UserDetails` do Spring Security, e `JWTUtil.java` foi atualizado para trabalhar com `UserDomain`.
+5.  **Revisão da Camada de Apresentação (`application/rest` - Controllers)**:
+    *   Todos os controllers foram revisados e confirmados como já alinhados com os princípios da Arquitetura Limpa.
+    *   Eles injetam as interfaces de serviço da camada de aplicação (`*Service.java`).
+    *   Operam exclusivamente com DTOs para entrada e saída de dados.
+    *   Delegam a lógica de negócio aos serviços da camada de aplicação.
+    *   Não possuem conhecimento direto das Entidades de Domínio ou da camada de Infraestrutura.
 
-## ⏸️ Onde Paramos (Ponto de Retomada)
+## ✅ Status Atual
 
-Nós acabamos de definir e criar toda a estrutura do **Repository Pattern** para a entidade `User`. A ponte entre a camada de domínio e a camada de infraestrutura para usuários está construída.
-
-No entanto, a camada de aplicação ainda não está usando essa ponte. O arquivo `application/service/IUsuarioServiceImpl.java` **ainda não foi refatorado** para usar a nova e limpa interface `UsuarioRepository`. Ele ainda contém a lógica de `Specification` e depende diretamente do `JpaRepository`.
+As camadas de Domínio, Infraestrutura (Persistência), Aplicação (Serviços) e Apresentação (Controllers) foram completamente refatoradas ou revisadas para aderir aos princípios da Arquitetura Limpa. O projeto está agora com uma estrutura de camadas bem definida e desacoplada.
 
 ## 🚀 Próximo Passo Imediato
 
-A próxima ação, ao retornar, é **refatorar a classe `IUsuarioServiceImpl.java`**.
-
-O objetivo é simplificá-la drasticamente, fazendo o seguinte:
-
-1.  **Injetar a Interface Limpa**:
-    *   Remover: `@Autowired private UsuarioJpaRepository userRepository;`
-    *   Adicionar: `@Autowired private UsuarioRepository usuarioRepository;` (a nossa nova interface de domínio).
-2.  **Delegar a Responsabilidade**:
-    *   Simplificar todos os métodos para que eles apenas chamem os métodos correspondentes do novo `usuarioRepository` (ex: `usuarioRepository.findById(id)`, `usuarioRepository.save(userDomain)`).
-    *   Remover completamente o método `filterByFields` (a lógica de `Specification`) de dentro do `IUsuarioServiceImpl`, pois essa lógica agora é uma responsabilidade interna do `UsuarioRepositoryImpl`.
-3.  **Resultado Final**: O `IUsuarioServiceImpl` se tornará um orquestrador puro, sem nenhum conhecimento sobre JPA, `Specification` ou Mappers. Ele apenas coordenará a chamada ao repositório e a outros serviços.
+Com as principais camadas da arquitetura limpa implementadas e revisadas, o próximo passo é focar na **validação e testes** para garantir que todas as funcionalidades continuem operando corretamente e que os novos princípios arquiteturais estejam sendo seguidos. Além disso, podemos começar a explorar a implementação de **casos de uso** mais complexos ou a adição de novas funcionalidades, sempre mantendo a aderência à arquitetura definida.

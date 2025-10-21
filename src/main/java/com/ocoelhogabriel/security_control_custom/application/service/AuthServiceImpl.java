@@ -7,7 +7,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
 
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.User;
+import com.ocoelhogabriel.security_control_custom.domain.entity.UserAuthDetails;
+import com.ocoelhogabriel.security_control_custom.domain.entity.UserDomain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,7 @@ import com.ocoelhogabriel.security_control_custom.application.dto.PerfilDTO;
 import com.ocoelhogabriel.security_control_custom.application.dto.ResponseAuthDTO;
 import com.ocoelhogabriel.security_control_custom.application.dto.TokenValidationResponseDTO;
 import com.ocoelhogabriel.security_control_custom.application.dto.GenerateTokenRecords;
-import com.ocoelhogabriel.security_control_custom.application.usecase.IAuthService;
+import com.ocoelhogabriel.security_control_custom.domain.service.IAuthService;
 import com.ocoelhogabriel.security_control_custom.infrastructure.security.JWTUtil;
 import com.ocoelhogabriel.security_control_custom.infrastructure.utils.message.MessageResponse;
 
@@ -52,12 +53,12 @@ public class AuthServiceImpl implements IAuthService {
 
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		User user = userService.findLoginEntity(username);
-		if (user == null) {
+		UserDomain userDomain = userService.findLoginEntity(username);
+		if (userDomain == null) {
 			log.info("Usuário não encontrado: " + username);
 			throw new UsernameNotFoundException("Usuário não encontrado: " + username);
 		}
-		return user;
+		return new UserAuthDetails(userDomain);
 	}
 
 	@Override
@@ -65,8 +66,8 @@ public class AuthServiceImpl implements IAuthService {
 		Objects.requireNonNull(authToken.getLogin(), "Login está nulo.");
 		Objects.requireNonNull(authToken.getSenha(), "Senha está nula.");
 
-		User user = userService.findLoginEntity(authToken.getLogin());
-		return jwtUtil.generateToken(user);
+		UserDomain userDomain = userService.findLoginEntity(authToken.getLogin());
+		return jwtUtil.generateToken(userDomain);
 	}
 
 	@Override
@@ -95,8 +96,8 @@ public class AuthServiceImpl implements IAuthService {
 	public ResponseEntity<ResponseAuthDTO> refreshToken(String token) {
 		try {
 			var refresh = jwtUtil.validateOrRefreshToken(token);
-			User userCheck = userService.findLoginEntity(refresh.username());
-			return MessageResponse.success(new ResponseAuthDTO(refresh.token(), refresh.date(), refresh.expiryIn(), userCheck.getId(), new PerfilDTO(userCheck.getPerfil())));
+			UserDomain userCheck = userService.findLoginEntity(refresh.username());
+			return MessageResponse.success(new ResponseAuthDTO(refresh.token(), refresh.date(), refresh.expiryIn(), userCheck.getId(), new PerfilDTO(userCheck.getProfileDomain())));
 		} catch (JWTVerificationException e) {
 			log.error("Erro ao atualizar o token: {}", e.getMessage(), e);
 			throw new JWTVerificationException("Erro ao atualizar o token.");
@@ -108,14 +109,14 @@ public class AuthServiceImpl implements IAuthService {
 		Objects.requireNonNull(authReq.getLogin(), "Login está nulo.");
 		Objects.requireNonNull(authReq.getSenha(), "Senha está nula.");
 
-		User userCheck = userService.findLoginEntity(authReq.getLogin());
+		UserDomain userCheck = userService.findLoginEntity(authReq.getLogin());
 
 		try {
 			var userAuthenticationToken = new UsernamePasswordAuthenticationToken(authReq.getLogin(), authReq.getSenha());
 			authenticationManager.authenticate(userAuthenticationToken);
 
 			GenerateTokenRecords tokenGenerate = getToken(authReq);
-			return MessageResponse.success(new ResponseAuthDTO(tokenGenerate.token(), tokenGenerate.date(), tokenGenerate.expiryIn(), userCheck.getId(), new PerfilDTO(userCheck.getPerfil())));
+			return MessageResponse.success(new ResponseAuthDTO(tokenGenerate.token(), tokenGenerate.date(), tokenGenerate.expiryIn(), userCheck.getId(), new PerfilDTO(userCheck.getProfileDomain())));
 		} catch (IOException e) {
 			log.error("Erro na autenticação: {}", e.getMessage(), e);
 			throw new IOException("Erro na autenticação: " + e.getMessage());

@@ -13,13 +13,13 @@ import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.ent
 
 public interface ProfileJpaRepository extends JpaRepository<Profile, Long>, JpaSpecificationExecutor<Profile> {
 
-	List<Profile> findByPercodIn(Collection<Long> list);
+	List<Profile> findByIdIn(Collection<Long> list);
 
-	Page<Profile> findByPercodIn(Pageable page, Collection<Long> list);
+	Page<Profile> findByIdIn(Pageable page, Collection<Long> list);
 
-	Page<Profile> findByPernomLike(String nome, Pageable page);
+	Page<Profile> findByNameLike(String name, Pageable page);
 
-	Page<Profile> findByPernomLikeAndPercodIn(String nome, Pageable page, Collection<Long> list);
+	Page<Profile> findByNameLikeAndIdIn(String name, Pageable page, Collection<Long> list);
 
-	Optional<Profile> findByPernom(String nome);
+	Optional<Profile> findByName(String name);
 }

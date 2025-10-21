@@ -1,4 +1,4 @@
-package com.ocoelhogabriel.security_control_custom.application.usecase;
+package com.ocoelhogabriel.security_control_custom.domain.service;
 
 import java.io.IOException;
 import java.time.Instant;

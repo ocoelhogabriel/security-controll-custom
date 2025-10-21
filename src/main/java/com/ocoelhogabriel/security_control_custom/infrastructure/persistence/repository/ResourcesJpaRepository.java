@@ -4,21 +4,22 @@ import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.ent
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.lang.NonNull;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface ResourcesJpaRepository extends JpaRepository<Resources, Long> {
-    Optional<Resources> findByRecnom(@NonNull String nome);
+public interface ResourcesJpaRepository extends JpaRepository<Resources, Long>, JpaSpecificationExecutor<Resources> {
+    Optional<Resources> findByName(@NonNull String name);
 
-    List<Resources> findByReccodIn(Collection<Long> list);
+    List<Resources> findByIdIn(Collection<Long> ids);
 
-    Page<Resources> findByReccodIn(Pageable page, Collection<Long> list);
+    Page<Resources> findByIdIn(Pageable page, Collection<Long> ids);
 
-    Page<Resources> findByRecnomLike(String nome, Pageable page);
+    Page<Resources> findByNameLike(String name, Pageable page);
 
-    Page<Resources> findByRecnomLikeAndReccodIn(String nome, Pageable page, Collection<Long> list);
+    Page<Resources> findByNameLikeAndIdIn(String name, Pageable page, Collection<Long> ids);
 
 }

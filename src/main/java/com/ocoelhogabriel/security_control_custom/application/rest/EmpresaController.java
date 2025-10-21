@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ocoelhogabriel.security_control_custom.application.dto.EmpresaModel;
 import com.ocoelhogabriel.security_control_custom.application.dto.EmpresaDTO;
-import com.ocoelhogabriel.security_control_custom.application.usecase.IEmpresaService;
+import com.ocoelhogabriel.security_control_custom.domain.service.IEmpresaService;
 import com.ocoelhogabriel.security_control_custom.infrastructure.utils.Utils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

@@ -4,13 +4,15 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
+import com.ocoelhogabriel.security_control_custom.domain.entity.CompanyDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.PlanDomain;
+import com.ocoelhogabriel.security_control_custom.domain.repository.PlanRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -18,162 +20,166 @@ import com.ocoelhogabriel.security_control_custom.infrastructure.exception.Custo
 import com.ocoelhogabriel.security_control_custom.application.handler.AbrangenciaHandler;
 import com.ocoelhogabriel.security_control_custom.application.dto.PlantaModel;
 import com.ocoelhogabriel.security_control_custom.application.dto.PlantaDTO;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Plan;
 import com.ocoelhogabriel.security_control_custom.application.dto.CheckAbrangenciaRec;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.repository.PlanJpaRepository;
-import com.ocoelhogabriel.security_control_custom.application.usecase.IPlantaService;
+import com.ocoelhogabriel.security_control_custom.domain.service.IPlantaService;
 import com.ocoelhogabriel.security_control_custom.infrastructure.utils.message.MessageResponse;
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class PlantaServiceImpl implements IPlantaService {
 
-	private static final Logger logger = LoggerFactory.getLogger(PlantaServiceImpl.class);
-	private static final String RECURSO = "Planta";
+    private static final Logger logger = LoggerFactory.getLogger(PlantaServiceImpl.class);
+    private static final String RECURSO = "Planta";
 
-	@Autowired
-	private PlanJpaRepository planJpaRepository;
+    @Autowired
+    private PlanRepository planRepository; // Substituído PlanJpaRepository por PlanRepository
 
-	@Autowired
-	private EmpresaServiceImpl empresaServiceImpl;
+    @Autowired
+    private EmpresaServiceImpl empresaServiceImpl;
 
-	@Autowired
-	private AbrangenciaHandler abrangenciaHandler;
+    @Autowired
+    private AbrangenciaHandler abrangenciaHandler;
 
-	private static final String PLANTA = "PLANTA";
+    private static final String PLANTA = "PLANTA";
 
-	public CheckAbrangenciaRec findAbrangencia() {
-		return abrangenciaHandler.checkAbrangencia(PLANTA);
-	}
+    public CheckAbrangenciaRec findAbrangencia() {
+        return abrangenciaHandler.checkAbrangencia(PLANTA);
+    }
 
-	@Override
-	public ResponseEntity<PlantaDTO> save(PlantaModel planta) throws IOException {
-		validatePlantaFields(planta);
+    @Override
+    public ResponseEntity<PlantaDTO> save(PlantaModel planta) throws IOException {
+        validatePlantaFields(planta);
 
-		var emp = empresaServiceImpl.findById(planta.getEmpresa());
-		if (emp == null)
-			throw new EntityNotFoundException("Empresa não encontrada.");
-		var entity = new Plan();
-		entity.plantaUpdateOrSave(planta.getNome(), emp);
-		Plan savedPlan = planJpaRepository.save(entity);
-		logger.info("Planta salva com sucesso: " + savedPlan);
-		return MessageResponse.create(new PlantaDTO(savedPlan));
-	}
+        CompanyDomain empresa = empresaServiceImpl.findById(planta.getEmpresa());
+        if (empresa == null)
+            throw new EntityNotFoundException("Empresa não encontrada.");
 
-	@Override
-	public ResponseEntity<Void> deleteByPlacod(Long codigo) throws IOException {
-		try {
-			var entity = findEntity(codigo);
-			if (entity == null) {
-				throw new EntityNotFoundException("Planta não encontrada com o código: " + codigo);
-			}
+        PlanDomain planDomain = new PlanDomain(null, planta.getNome(), empresa);
+        PlanDomain savedPlan = planRepository.save(planDomain);
+        logger.info("Planta salva com sucesso: {}",
 
-			planJpaRepository.deleteById(entity.getId());
-			return MessageResponse.noContent();
-		} catch (EmptyResultDataAccessException e) {
-			logger.error("Não foi possível encontrar a Planta com o ID fornecido. Error: ", e);
-			throw CustomMessageExcep.exceptionEntityNotFoundException(codigo, RECURSO, e);
-		}
-	}
+                savedPlan);
+        return MessageResponse.create(new
 
-	@Override
-	public ResponseEntity<PlantaDTO> update(Long codigo, PlantaModel planta) throws IOException {
-		Objects.requireNonNull(codigo, "Código da Planta está nulo.");
-		validatePlantaFields(planta);
+                PlantaDTO(savedPlan));
+    }
 
-		var entity = findEntity(codigo);
-		if (entity == null)
-			throw new EntityNotFoundException("Planta não encontrada.");
-		var emp = empresaServiceImpl.findById(planta.getEmpresa());
-		if (emp == null)
-			throw new EntityNotFoundException("Empresa não encontrada.");
-		entity.plantaUpdateOrSave(planta.getNome(), emp);
+    @Override
+    public ResponseEntity<Void> deleteByPlacod(Long codigo) throws IOException {
+        try {
+            PlanDomain entity = findEntity(codigo);
+            if (entity == null) {
+                throw new EntityNotFoundException("Planta não encontrada com o código: " + codigo);
+            }
 
-		Plan updatedPlan = planJpaRepository.save(entity);
-		logger.info("Planta atualizada com sucesso: " + updatedPlan);
+            planRepository.deleteById(entity.getId()); // Usando removeById do PlanRepository
+            return MessageResponse.noContent();
+        } catch (Exception e) {
+            logger.error("Não foi possível encontrar a Planta com o ID fornecido. Error: ", e);
+            throw CustomMessageExcep.exceptionEntityNotFoundException(codigo, RECURSO, e);
+        }
+    }
 
-		return MessageResponse.success(new PlantaDTO(updatedPlan));
+    @Override
+    public ResponseEntity<PlantaDTO> update(Long codigo, PlantaModel planta) throws IOException {
+        Objects.requireNonNull(codigo, "Código da Planta está nulo.");
+        validatePlantaFields(planta);
 
-	}
+        PlanDomain entity = findEntity(codigo);
+        if (entity == null)
+            throw new EntityNotFoundException("Planta não encontrada.");
 
-	@Override
-	public List<PlantaDTO> sendListAbrangenciaPlantaDTO() throws IOException {
-		return planJpaRepository.findAll().stream().map(PlantaDTO::new).toList();
-	}
+        CompanyDomain empresa = empresaServiceImpl.findById(planta.getEmpresa());
+        if (empresa == null)
+            throw new EntityNotFoundException("Empresa não encontrada.");
 
-	@Override
-	public ResponseEntity<List<PlantaDTO>> findAllPlantaDTO() throws IOException {
+        entity.setName(planta.getNome());
+        entity.setCompanyDomain(empresa);
 
-		Specification<Plan> spec = Specification.where(null);
+        PlanDomain updatedPlan = planRepository.save(entity);
+        logger.info("Planta atualizada com sucesso: {}", updatedPlan);
 
-		if (findAbrangencia().isHier() == 0) {
-			spec = spec.and(Plan.filterByFields(null, null));
-		} else {
-			spec = spec.and(Plan.filterByFields(null, findAbrangencia().listAbrangencia()));
-		}
-		List<PlantaDTO> plantaDTOs = planJpaRepository.findAll(spec).stream().map(this::convertPlantaDTO).toList();
-		return MessageResponse.success(plantaDTOs);
-	}
+        return MessageResponse.success(new PlantaDTO(updatedPlan));
 
-	@Override
-	public ResponseEntity<Page<PlantaDTO>> plantaFindAllPaginado(String searchTerm, Pageable pageable) throws EntityNotFoundException, IOException {
+    }
 
-		Specification<Plan> spec = Specification.where(null);
+    @Override
+    public List<PlantaDTO> sendListAbrangenciaPlantaDTO() throws IOException {
+        return planRepository.findAll().stream().map(PlantaDTO::new).toList();
+    }
 
-		if (findAbrangencia().isHier() == 0) {
-			spec = spec.and(Plan.filterByFields(searchTerm, null));
-		} else {
-			spec = spec.and(Plan.filterByFields(searchTerm, findAbrangencia().listAbrangencia()));
-		}
-		Page<Plan> result = planJpaRepository.findAll(spec, pageable);
-		return ResponseEntity.ok(result.map(this::convertPlantaDTO));
-	}
+    @Override
+    public ResponseEntity<List<PlantaDTO>> findAllPlantaDTO() throws IOException {
+        List<PlanDomain> result;
+        if (findAbrangencia().isHier() == 0) {
+            result = planRepository.findAll();
+        } else {
+            List<Long> abrangenciaIds = findAbrangencia().listAbrangencia();
+            result = planRepository.findAll().stream().filter(plan -> abrangenciaIds.contains(plan.getId())).toList();
+        }
+        List<PlantaDTO> plantaDTOs = result.stream().map(this::convertPlantaDTO).toList();
+        return MessageResponse.success(plantaDTOs);
+    }
 
-	@Override
-	public ResponseEntity<PlantaDTO> findById(Long codigo) throws IOException, EmptyResultDataAccessException {
-		Objects.requireNonNull(codigo, "Código da Planta está nulo.");
+    @Override
+    public ResponseEntity<Page<PlantaDTO>> plantaFindAllPaginado(String searchTerm, Pageable pageable) throws EntityNotFoundException, IOException {
+        Page<PlanDomain> result;
+        if (findAbrangencia().isHier() == 0) {
+            result = planRepository.findAll(searchTerm, null, pageable);
+        } else {
+            List<Long> abrangenciaIds = findAbrangencia().listAbrangencia();
+            result = planRepository.findAll(searchTerm, abrangenciaIds, pageable);
+        }
+        return ResponseEntity.ok(result.map(this::convertPlantaDTO));
+    }
 
+    @Override
+    public ResponseEntity<PlantaDTO> findById(Long codigo) throws IOException, EmptyResultDataAccessException {
+        Objects.requireNonNull(codigo, "Código da Planta está nulo.");
 
-		Plan result = findEntity(codigo);
-		if (result == null) {
-			logger.error("Planta não encontrada.");
-			throw new EntityNotFoundException("Planta não encontrada.");
-		}
+        PlanDomain result = findEntity(codigo);
+        if (result == null) {
+            logger.error("Planta não encontrada.");
+            throw new EntityNotFoundException("Planta não encontrada.");
+        }
 
-		Long idPermitted = abrangenciaHandler.findIdAbrangenciaPermi(findAbrangencia(), result.getId());
-		if (idPermitted == null) {
-			throw new EntityNotFoundException("Sem Abrangência para essa planta.");
-		}
+        Long idPermitted = abrangenciaHandler.findIdAbrangenciaPermi(findAbrangencia(), result.getId());
+        if (idPermitted == null) {
+            throw new EntityNotFoundException("Sem Abrangência para essa planta.");
+        }
 
-		return MessageResponse.success(convertPlantaDTO(result));
-	}
+        return MessageResponse.success(convertPlantaDTO(result));
+    }
 
-	private PlantaDTO convertPlantaDTO(Plan planEntity) {
-		return new PlantaDTO(planEntity, empresaServiceImpl.findByIdAbrangencia(planEntity.getEmpresa()));
-	}
+    private PlantaDTO convertPlantaDTO(PlanDomain planDomain) {
+        CompanyDomain companyDomain = empresaServiceImpl.findById(planDomain.getCompanyDomain().getId());
+        return new PlantaDTO(planDomain, companyDomain);
+    }
 
-	Plan findEntity(Long codigo) {
-		Objects.requireNonNull(codigo, "Código está nulo.");
-		return planJpaRepository.findById(codigo).orElse(null);
-	}
+    PlanDomain findEntity(Long codigo) {
+        Objects.requireNonNull(codigo, "Código está nulo.");
+        return planRepository.findById(codigo).orElse(null);
+    }
 
-	private void validatePlantaFields(PlantaModel planta) {
-		Objects.requireNonNull(planta.getEmpresa(), "Código da Empresa está nulo.");
-		Objects.requireNonNull(planta.getNome(), "Nome da planta está nulo.");
-	}
+    private void validatePlantaFields(PlantaModel planta) {
+        Objects.requireNonNull(planta.getEmpresa(), "Código da Empresa está nulo.");
+        Objects.requireNonNull(planta.getNome(), "Nome da planta está nulo.");
+    }
 
-	PlantaDTO findPlantaAbrangencia(Long codigo) {
+    PlantaDTO findPlantaAbrangencia(Long codigo) {
 
-		Long idPermitted = abrangenciaHandler.findIdAbrangenciaPermi(findAbrangencia(), codigo);
-		if (idPermitted == null) {
-			return null;
-		}
-		Plan result = findEntity(idPermitted);
-		if (result == null) {
-			logger.error("Planta não encontrada.");
-			return null;
-		}
-		return new PlantaDTO(result, empresaServiceImpl.findByIdAbrangencia(result.getEmpresa()));
-	}
+        Long idPermitted = abrangenciaHandler.findIdAbrangenciaPermi(findAbrangencia(), codigo);
+        if (idPermitted == null) {
+            return null;
+        }
+        PlanDomain result = findEntity(idPermitted);
+        if (result == null) {
+            logger.error("Planta não encontrada.");
+            return null;
+        }
+        // empresaServiceImpl.findByIdAbrangencia agora retorna CompanyDomain
+        CompanyDomain companyDomain = empresaServiceImpl.findById(result.getCompanyDomain().getId());
+        return new PlantaDTO(result, companyDomain);
+    }
 
 }

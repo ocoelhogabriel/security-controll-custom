@@ -1,7 +1,6 @@
 package com.ocoelhogabriel.security_control_custom.application.dto;
 
 import com.ocoelhogabriel.security_control_custom.domain.entity.ScopeDomain;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Scope;
 
 public class AbrangenciaDTO extends CodigoExtends {
 

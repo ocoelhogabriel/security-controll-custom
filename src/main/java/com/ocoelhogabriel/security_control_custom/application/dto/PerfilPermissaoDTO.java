@@ -2,7 +2,7 @@ package com.ocoelhogabriel.security_control_custom.application.dto;
 
 import java.util.List;
 
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Profile;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ProfileDomain;
 
 public class PerfilPermissaoDTO extends CodigoExtends {
 
@@ -60,11 +60,11 @@ public class PerfilPermissaoDTO extends CodigoExtends {
 		this.permissoes = permissoes;
 	}
 
-	public PerfilPermissaoDTO(Profile profile, List<PermissaoDTO> permissoes) {
+	public PerfilPermissaoDTO(ProfileDomain profileDomain, List<PermissaoDTO> permissoes) {
 		super();
-		this.setCodigo(profile.getId());
-		this.nome = profile.getName();
-		this.descricao = profile.getDescription();
+		this.setCodigo(profileDomain.getId());
+		this.nome = profileDomain.getName();
+		this.descricao = profileDomain.getDescription();
 		this.permissoes = permissoes;
 	}
 

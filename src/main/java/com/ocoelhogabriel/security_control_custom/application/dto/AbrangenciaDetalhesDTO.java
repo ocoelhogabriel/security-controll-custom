@@ -2,10 +2,10 @@ package com.ocoelhogabriel.security_control_custom.application.dto;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.ScopeDetails;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ScopeDetailsDomain;
 import com.ocoelhogabriel.security_control_custom.infrastructure.utils.JsonNodeConverter;
 
-public class AbrangenciaDetalhesDTO {
+public class AbrangenciaDetalhesDTO extends CodigoExtends {
 
 	private String recurso;
 
@@ -62,13 +62,13 @@ public class AbrangenciaDetalhesDTO {
 		this.dados = dados;
 	}
 
-	public AbrangenciaDetalhesDTO(ScopeDetails abrDetalhes) {
+	public AbrangenciaDetalhesDTO(ScopeDetailsDomain abrDetalhesDomain) {
 		super();
 		JsonNodeConverter jsonNode = new JsonNodeConverter();
 
-		this.recurso = abrDetalhes.getResource().getName();
-		this.hierarquia = abrDetalhes.getHierarchy();
-		this.dados = jsonNode.convertToEntityAttribute(abrDetalhes.getAbddat());
+		this.recurso = abrDetalhesDomain.getResource().getName();
+		this.hierarquia = abrDetalhesDomain.getHierarchy();
+		this.dados = jsonNode.convertToEntityAttribute(abrDetalhesDomain.getData());
 	}
 
 	public AbrangenciaDetalhesDTO() {

@@ -2,7 +2,7 @@ package com.ocoelhogabriel.security_control_custom.application.dto;
 
 import java.util.List;
 
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Scope;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ScopeDomain;
 
 public class AbrangenciaListaDetalhesDTO extends CodigoExtends {
 
@@ -53,11 +53,11 @@ public class AbrangenciaListaDetalhesDTO extends CodigoExtends {
 		return builder.toString();
 	}
 
-	public AbrangenciaListaDetalhesDTO(Scope abr, List<AbrangenciaDetalhesDTO> recursos) {
+	public AbrangenciaListaDetalhesDTO(ScopeDomain abrDomain, List<AbrangenciaDetalhesDTO> recursos) {
 		super();
-		this.setCodigo(abr.getId());
-		this.nome = abr.getName();
-		this.descricao = abr.getDescription();
+		this.setCodigo(abrDomain.getId());
+		this.nome = abrDomain.getName();
+		this.descricao = abrDomain.getDescription();
 		this.recursos = recursos;
 
 	}

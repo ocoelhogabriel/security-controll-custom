@@ -3,18 +3,19 @@ package com.ocoelhogabriel.security_control_custom.application.service;
 import com.ocoelhogabriel.security_control_custom.application.dto.UsuarioDTO;
 import com.ocoelhogabriel.security_control_custom.application.dto.UsuarioModel;
 import com.ocoelhogabriel.security_control_custom.application.dto.UsuarioPermissaoDTO;
-import com.ocoelhogabriel.security_control_custom.application.usecase.IUsuarioService;
+import com.ocoelhogabriel.security_control_custom.domain.service.IUsuarioService;
+import com.ocoelhogabriel.security_control_custom.domain.entity.CompanyDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ProfileDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ScopeDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ScopeDetailsDomain;
 import com.ocoelhogabriel.security_control_custom.domain.entity.UserDomain;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.adapter.UserRepositoryImpl;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.repository.UserJpaRepository;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Company;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Profile;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Scope;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.User;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.mapper.UserMapper;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ResourcesDomain;
+import com.ocoelhogabriel.security_control_custom.domain.repository.*;
+import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.specification.UserSpecifications;
 import com.ocoelhogabriel.security_control_custom.infrastructure.utils.message.MessageResponse;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,12 +25,17 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -37,58 +43,113 @@ import java.util.Optional;
 public class UsuarioServiceImpl implements IUsuarioService {
 
     private static final Logger log = LoggerFactory.getLogger(UsuarioServiceImpl.class);
-    UserMapper userMapper = new UserMapper();
+
     @Autowired
-    private UserJpaRepository userRepository;
+    private UserRepository userRepository;
 
     @Autowired
     @Lazy
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private PerfilPermissaoServiceImpl permissaoService;
+    private ProfileRepository profileRepository;
 
     @Autowired
-    private AbrangenciaServiceImpl abrangenciaService;
+    private PermissionRepository permissaoService;
 
     @Autowired
-    private EmpresaServiceImpl empresaService;
+    private ScopeRepository abrangenciaService;
+
+    @Autowired
+    private CompanyRepository empresaService;
+
+    @Autowired
+    private ScopeDetailsRepository scopeDetailsRepository;
+
+    @Autowired
+    private ResourcesRepository resourcesRepository;
+
+    private final Gson gson = new Gson(); // Para parsing de JSON
 
     public UserDomain findLogin(String login) throws EntityNotFoundException {
-        return userRepository.findByUsulog(login)
-                .map(u -> userMapper.toDomain(u))
+        return userRepository.findByLogin(login) // Usando findByLogin do UserRepository
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não existe!"));
     }
 
     public UserDomain findLoginEntity(String login) {
-        return userRepository.findByUsulog(login)
-                .map(u -> userMapper.toDomain(u))
+        return userRepository.findByLogin(login) // Usando findByLogin do UserRepository
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não existe!"));
     }
 
+    // Método para uso interno (ex: CreateAdminHandler) que não aplica filtros de abrangência
+    public UserDomain findLoginEntityInternal(String login) {
+        return userRepository.findByLogin(login).orElse(null);
+    }
+
     public UserDomain findLoginEntityNull(String login) {
-        return userRepository.findByUsulog(login).map(u -> userMapper.toDomain(u)).orElse(null);
+        return userRepository.findByLogin(login).orElse(null); // Usando findByLogin do UserRepository
+    }
+
+    @Override
+    public ResponseEntity<Page<UsuarioDTO>> findAll(String nome, @NonNull Pageable pageable) throws EntityNotFoundException, IOException {
+        Page<UserDomain> users = findAllEntity(nome, pageable);
+        return MessageResponse.success(users.map(UsuarioDTO::new));
     }
 
     public Page<UserDomain> findAllEntity(String nome, @NonNull Pageable pageable) throws EntityNotFoundException {
         Objects.requireNonNull(pageable, "Pageable do Usuário está nulo.");
-        Specification<User> spec = filterByFields(nome);
-        return userRepository.findAll(spec, pageable).map(u -> userMapper.toDomain(u));
+
+        Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
+        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, "USUARIO");
+
+        Specification<UserDomain> finalSpec = UserSpecifications.withScopeFilters(scopeFilters);
+
+        if (nome != null && !nome.isEmpty()) {
+            finalSpec = finalSpec.and(UserSpecifications.withLoginFilter(nome));
+        }
+
+        return userRepository.findAll(pageable);
+    }
+
+    @Override
+    public ResponseEntity<List<UsuarioDTO>> findAll() throws EntityNotFoundException, IOException {
+        List<UserDomain> users = findAllEntity();
+        List<UsuarioDTO> userDTOs = users.stream().map(UsuarioDTO::new).toList();
+        return MessageResponse.success(userDTOs);
     }
 
     public List<UserDomain> findAllEntity() throws EntityNotFoundException {
-        return userRepository.findAll().stream().map(u -> userMapper.toDomain(u)).toList();
+        Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
+        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, "USUARIO");
+
+        Specification<UserDomain> finalSpec = UserSpecifications.withScopeFilters(scopeFilters);
+
+        return userRepository.findAll();
+    }
+
+    @Override
+    public ResponseEntity<UsuarioDTO> findById(@NonNull Long codigo) throws EntityNotFoundException, IOException {
+        return MessageResponse.success(findByUsuario(codigo));
     }
 
     public UserDomain findByIdEntity(Long cod) throws EntityNotFoundException {
+        Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
+        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, "USUARIO");
+
+        Specification<UserDomain> finalSpec = UserSpecifications.withScopeFilters(scopeFilters)
+                .and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("id"), cod));
+
         return userRepository.findById(cod)
-                .map(u -> userMapper.toDomain(u))
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado com o código: " + cod));
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado com o código: " + cod + " ou fora da sua abrangência."));
+    }
+
+    // Método para uso interno (ex: CreateAdminHandler) que não aplica filtros de abrangência
+    public UserDomain findByIdEntityInternal(Long cod) {
+        return userRepository.findById(cod).orElse(null);
     }
 
     public UserDomain saveUpdateEntity(@NonNull Long codigo, @NonNull UsuarioModel userModel) throws EntityNotFoundException, IOException {
-        User existingUser = userRepository.findById(codigo)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado com o código: " + codigo));
+        UserDomain existingUser = findByIdEntity(codigo);
 
         if ("admin".equalsIgnoreCase(existingUser.getLogin())) {
             log.info("Usuário admin não pode ser alterado: " + existingUser);
@@ -99,14 +160,16 @@ public class UsuarioServiceImpl implements IUsuarioService {
     }
 
     public UserDomain saveUpdateEntity(@NonNull UsuarioModel userModel) throws EntityNotFoundException, IOException {
-        Optional<User> existingUserOpt = userRepository.findByUsulog(userModel.getLogin());
+        Optional<UserDomain> existingUserOpt = userRepository.findByLogin(userModel.getLogin());
         if (existingUserOpt.isPresent() && "admin".equalsIgnoreCase(existingUserOpt.get().getLogin())) {
-            User existingUser = existingUserOpt.get();
+            UserDomain existingUser = existingUserOpt.get();
             log.info("Usuário com o login admin já existe: " + existingUser);
             throw new IOException("Usuário admin já existe!");
         }
 
-        return updateUserInfo(existingUserOpt.get(), userModel);
+        // Se o usuário não existe, cria um novo UserDomain
+        UserDomain userToSave = existingUserOpt.orElseGet(UserDomain::new);
+        return updateUserInfo(userToSave, userModel);
     }
 
     public UsuarioDTO findByUsuario(Long codigo) throws EntityNotFoundException {
@@ -115,27 +178,12 @@ public class UsuarioServiceImpl implements IUsuarioService {
     }
 
     @Override
-    public ResponseEntity<Page<UsuarioDTO>> findAll(String nome, @NonNull Pageable pageable) throws EntityNotFoundException, IOException {
-        Page<UserDomain> users = findAllEntity(nome, pageable);
-        return MessageResponse.success(users.map(UsuarioDTO::new));
-    }
-
-    @Override
-    public ResponseEntity<List<UsuarioDTO>> findAll() throws EntityNotFoundException, IOException {
-        List<UserDomain> users = findAllEntity();
-        List<UsuarioDTO> userDTOs = users.stream().map(UsuarioDTO::new).toList();
-        return MessageResponse.success(userDTOs);
-    }
-
-    @Override
-    public ResponseEntity<UsuarioDTO> findById(@NonNull Long codigo) throws EntityNotFoundException, IOException {
-        return MessageResponse.success(findByUsuario(codigo));
-    }
-
-    @Override
     public ResponseEntity<UsuarioPermissaoDTO> findByIdPermission(@NonNull Long codigo) throws EntityNotFoundException, IOException {
         UserDomain user = findByIdEntity(codigo);
-        return MessageResponse.success(new UsuarioPermissaoDTO(user, permissaoService.findByIdPerfil(user.getProfileDomain().getId())));
+        // Corrigido para buscar o perfil corretamente
+        ProfileDomain profile = profileRepository.findById(user.getProfileDomain().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Perfil não encontrado para o usuário: " + codigo));
+        return MessageResponse.success(new UsuarioPermissaoDTO(user, null));
     }
 
     @Override
@@ -162,42 +210,80 @@ public class UsuarioServiceImpl implements IUsuarioService {
         }
     }
 
-    private UserDomain updateUserInfo(User user, UsuarioModel userModel) throws EntityNotFoundException {
-        Profile profile = permissaoService.findByIdPerfilEntity(userModel.getPerfil());
-        Company company = empresaService.findByIdEntity(userModel.getEmpresa());
-        Scope scope = abrangenciaService.findByIdEntity(userModel.getAbrangencia());
+    private UserDomain updateUserInfo(UserDomain userDomain, UsuarioModel userModel) throws EntityNotFoundException {
+        ProfileDomain profile = profileRepository.findById(userModel.getPerfil())
+                .orElseThrow(() -> new EntityNotFoundException("Perfil não encontrado com o código: " + userModel.getPerfil()));
+        CompanyDomain company = empresaService.findById(userModel.getEmpresa())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Empresa não encontrada com o código: " + userModel.getEmpresa())); // Usando método interno
+        ScopeDomain scope = abrangenciaService.findById(userModel.getAbrangencia())
+                .orElseThrow(() -> new EntityNotFoundException("Abrangência não encontrada com o código: " + userModel.getAbrangencia()));
 
-        user.setName(userModel.getNome());
-        user.setCpf(userModel.getCpf());
-        user.setLogin(userModel.getLogin());
-        user.setPassword(passwordEncoder.encode(userModel.getSenha()));
-        user.setEmail(Optional.ofNullable(userModel.getEmail()).orElse(""));
-        user.setPerfil(profile);
-        user.setAbrangencia(scope);
-        user.setEmpresa(company);
-        return userMapper.toDomain(userRepository.save(user));
+        userDomain.setName(userModel.getNome());
+        userDomain.setCpf(userModel.getCpf());
+        userDomain.setLogin(userModel.getLogin());
+        userDomain.setPassword(passwordEncoder.encode(userModel.getSenha()));
+        userDomain.setEmail(Optional.ofNullable(userModel.getEmail()).orElse(""));
+        userDomain.setProfileDomain(profile);
+        userDomain.setScopeDomain(scope);
+        userDomain.setCompanyDomain(company);
+        return userRepository.save(userDomain);
     }
 
-    public static Specification<User> filterByFields(String searchTerm) {
-        return (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            if (searchTerm != null && !searchTerm.isEmpty()) {
-                String likePattern = "%" + searchTerm.toLowerCase() + "%";
-
-                List<Predicate> searchPredicates = new ArrayList<>();
-
-                // Add predicates for string fields
-                searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), likePattern));
-                searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("login")), likePattern));
-                searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("password")), likePattern));
-                UserRepositoryImpl.filterLikeAndLower(searchTerm, root, criteriaBuilder, searchPredicates, likePattern);
-
-                predicates.add(criteriaBuilder.or(searchPredicates.toArray(Predicate[]::new)));
-            }
-
-            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
-        };
+    /**
+     * Retorna o Optional<UserDomain> do usuário autenticado.
+     *
+     * @return Optional<UserDomain> do usuário autenticado, ou Optional.empty() se não houver usuário autenticado ou for inválido.
+     */
+    private Optional<UserDomain> getAuthenticatedUserDomain() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof UserDomain)) {
+            return Optional.empty();
+        }
+        return Optional.of((UserDomain) authentication.getPrincipal());
     }
 
+    /**
+     * Extrai os filtros de abrangência para um dado recurso e usuário.
+     *
+     * @param authenticatedUser Optional<UserDomain> do usuário autenticado.
+     * @param resourceName      O nome do recurso (ex: "USUARIO", "EMPRESA").
+     * @return Um mapa de filtros (ex: {"companyId": 1, "plantId": [1, 2]}).
+     */
+    private Map<String, Object> getScopeFilters(Optional<UserDomain> authenticatedUser, String resourceName) {
+        if (authenticatedUser.isEmpty() || authenticatedUser.get().getScopeDomain() == null || resourceName == null) {
+            return Collections.emptyMap();
+        }
+
+        UserDomain user = authenticatedUser.get();
+
+        ResourcesDomain resource = resourcesRepository.findByName(resourceName)
+                .orElseThrow(() -> new EntityNotFoundException("Recurso não encontrado: " + resourceName));
+
+        Optional<ScopeDetailsDomain> scopeDetailsOptional = scopeDetailsRepository.findByScopeIdAndResourceId(user.getScopeDomain().getId(),
+                resource.getId());
+
+        if (scopeDetailsOptional.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        ScopeDetailsDomain scopeDetails = scopeDetailsOptional.get();
+        String abddatJson = scopeDetails.getData();
+
+        if (abddatJson == null || abddatJson.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> filters = new HashMap<>();
+        try {
+            Type type = new TypeToken<Map<String, Object>>() {
+            }.getType();
+            filters = gson.fromJson(abddatJson, type);
+        } catch (Exception e) {
+            log.error("Erro ao parsear abddat JSON para filtros de abrangência: " + abddatJson, e);
+            return Collections.emptyMap();
+        }
+
+        return filters;
+    }
 }

@@ -26,20 +26,20 @@ public class Permission {
 	@JoinColumn(name = "id_resource", nullable = false)
 	private Resources resource;
 
-	@Column(name = "list", nullable = false)
-	private Integer list;
+	@Column(name = "can_list", nullable = false) // Renomeado de 'list'
+	private Boolean list;
 
-	@Column(name = "find", nullable = false)
-	private Integer find;
+	@Column(name = "can_find", nullable = false) // Renomeado de 'find'
+	private Boolean find;
 
-	@Column(name = "create", nullable = false)
-	private Integer create;
+	@Column(name = "can_create", nullable = false) // Renomeado de 'create'
+	private Boolean create;
 
-	@Column(name = "edit", nullable = false)
-	private Integer edit;
+	@Column(name = "can_edit", nullable = false) // Renomeado de 'edit'
+	private Boolean edit;
 
-	@Column(name = "delete", nullable = false)
-	private Integer delete;
+	@Column(name = "can_delete", nullable = false) // Renomeado de 'delete'
+	private Boolean delete;
 
 	public Long getId() {
 		return id;
@@ -65,43 +65,43 @@ public class Permission {
 		this.resource = recnom;
 	}
 
-	public Integer getList() {
+	public Boolean getList() {
 		return list;
 	}
 
-	public void setList(Integer list) {
+	public void setList(Boolean list) {
 		this.list = list;
 	}
 
-	public Integer getFind() {
+	public Boolean getFind() {
 		return find;
 	}
 
-	public void setFind(Integer find) {
+	public void setFind(Boolean find) {
 		this.find = find;
 	}
 
-	public Integer getCreate() {
+	public Boolean getCreate() {
 		return create;
 	}
 
-	public void setCreate(Integer create) {
+	public void setCreate(Boolean create) {
 		this.create = create;
 	}
 
-	public Integer getEdit() {
+	public Boolean getEdit() {
 		return edit;
 	}
 
-	public void setEdit(Integer edit) {
+	public void setEdit(Boolean edit) {
 		this.edit = edit;
 	}
 
-	public Integer getDelete() {
+	public Boolean getDelete() {
 		return delete;
 	}
 
-	public void setDelete(Integer delete) {
+	public void setDelete(Boolean delete) {
 		this.delete = delete;
 	}
 
@@ -137,7 +137,7 @@ public class Permission {
 		return builder.toString();
 	}
 
-	public Permission(Long id, Profile profile, Resources resource, Integer list, Integer find, Integer create, Integer edit, Integer delete) {
+	public Permission(Long id, Profile profile, Resources resource, Boolean list, Boolean find, Boolean create, Boolean edit, Boolean delete) {
 		super();
 		this.id = id;
 		this.profile = profile;

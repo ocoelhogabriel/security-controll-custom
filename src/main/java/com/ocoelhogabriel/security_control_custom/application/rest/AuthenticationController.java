@@ -20,7 +20,7 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.ocoelhogabriel.security_control_custom.application.dto.AuthModel;
 import com.ocoelhogabriel.security_control_custom.application.dto.ResponseAuthDTO;
 import com.ocoelhogabriel.security_control_custom.application.dto.TokenValidationResponseDTO;
-import com.ocoelhogabriel.security_control_custom.application.usecase.IAuthService;
+import com.ocoelhogabriel.security_control_custom.domain.service.IAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

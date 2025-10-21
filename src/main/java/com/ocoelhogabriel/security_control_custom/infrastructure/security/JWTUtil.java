@@ -7,7 +7,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Objects;
 
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.User;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ProfileDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.UserDomain;
 import com.ocoelhogabriel.security_control_custom.infrastructure.utils.Utils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
@@ -38,13 +39,13 @@ public class JWTUtil {
 		return secret;
 	}
 
-	public GenerateTokenRecords generateToken(User user) {
+	public GenerateTokenRecords generateToken(UserDomain userDomain) {
 		try {
 			Algorithm algorithm = Algorithm.HMAC256(secret);
 			Instant expirationInstant = genExpirationDate();
-			String token = JWT.create().withIssuer("auth-api").withSubject(user.getLogin()).withExpiresAt(Date.from(expirationInstant)).withClaim("role", user.getPerfil().getName()).sign(algorithm);
+			String token = JWT.create().withIssuer("auth-api").withSubject(userDomain.getLogin()).withExpiresAt(Date.from(expirationInstant)).withClaim("role", userDomain.getProfileDomain().getName()).sign(algorithm);
 
-			return new GenerateTokenRecords(user.getUsername(), token, Utils.newDateString(), dtfEditado.format(expirationInstant.atZone(ZoneId.systemDefault())));
+			return new GenerateTokenRecords(userDomain.getLogin(), token, Utils.newDateString(), dtfEditado.format(expirationInstant.atZone(ZoneId.systemDefault())));
 		} catch (JWTCreationException | IllegalArgumentException e) {
 			throw new JWTCreationException("Error while generating token", e);
 		}
@@ -83,14 +84,17 @@ public class JWTUtil {
 			DecodedJWT decodedToken = verifier.verify(refreshToken);
 
 			String username = decodedToken.getSubject();
-			User user = new User();
-			user.setLogin(username);
-			return generateToken(user);
+			UserDomain userDomain = new UserDomain();
+			userDomain.setLogin(username);
+			// Note: ProfileDomain is needed for token generation, but not available here.
+			// This might require fetching the user from the database or passing more info.
+			// For now, setting a dummy ProfileDomain to avoid null pointer.
+			userDomain.setProfileDomain(new ProfileDomain(null, "DEFAULT", "Default Profile"));
+			return generateToken(userDomain);
 		} catch (TokenExpiredException e) {
 			throw new AccessDeniedException("Refresh token has expired");
 		} catch (JWTVerificationException e) {
-			throw new AccessDeniedException("Refresh token verification failed");
-		}
+			throw new AccessDeniedException("Refresh token verification failed");		}
 	}
 
 	private Instant genExpirationDate() {

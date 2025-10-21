@@ -14,23 +14,23 @@ public class PermissaoModel {
 
 	@NotNull(message = "O campo 'listar' é obrigatório e não pode estar nulo.")
 	@Schema(name = "listar", description = "Acessível - 1 / Não Acessível - 0")
-	private Integer listar;
+	private Boolean listar;
 
 	@NotNull(message = "O campo 'buscar' é obrigatório e não pode estar nulo.")
 	@Schema(name = "buscar", description = "Acessível - 1 / Não Acessível - 0")
-	private Integer buscar;
+	private Boolean buscar;
 
 	@NotNull(message = "O campo 'criar' é obrigatório e não pode estar nulo.")
 	@Schema(name = "criar", description = "Acessível - 1 / Não Acessível - 0")
-	private Integer criar;
+	private Boolean criar;
 
 	@NotNull(message = "O campo 'editar' é obrigatório e não pode estar nulo.")
 	@Schema(name = "editar", description = "Acessível - 1 / Não Acessível - 0")
-	private Integer editar;
+	private Boolean editar;
 
 	@NotNull(message = "O campo 'deletar' é obrigatório e não pode estar nulo.")
 	@Schema(name = "deletar", description = "Acessível - 1 / Não Acessível - 0")
-	private Integer deletar;
+	private Boolean deletar;
 
 	public RecursoMapEnum getRecurso() {
 		return recurso;
@@ -40,43 +40,43 @@ public class PermissaoModel {
 		this.recurso = recurso;
 	}
 
-	public Integer getListar() {
+	public Boolean getListar() {
 		return listar;
 	}
 
-	public void setListar(Integer listar) {
+	public void setListar(Boolean listar) {
 		this.listar = listar;
 	}
 
-	public Integer getBuscar() {
+	public Boolean getBuscar() {
 		return buscar;
 	}
 
-	public void setBuscar(Integer buscar) {
+	public void setBuscar(Boolean buscar) {
 		this.buscar = buscar;
 	}
 
-	public Integer getCriar() {
+	public Boolean getCriar() {
 		return criar;
 	}
 
-	public void setCriar(Integer criar) {
+	public void setCriar(Boolean criar) {
 		this.criar = criar;
 	}
 
-	public Integer getEditar() {
+	public Boolean getEditar() {
 		return editar;
 	}
 
-	public void setEditar(Integer editar) {
+	public void setEditar(Boolean editar) {
 		this.editar = editar;
 	}
 
-	public Integer getDeletar() {
+	public Boolean getDeletar() {
 		return deletar;
 	}
 
-	public void setDeletar(Integer deletar) {
+	public void setDeletar(Boolean deletar) {
 		this.deletar = deletar;
 	}
 
@@ -106,7 +106,7 @@ public class PermissaoModel {
 		return builder.toString();
 	}
 
-	public PermissaoModel(@NotBlank RecursoMapEnum recurso, @NotBlank Integer listar, @NotBlank Integer buscar, @NotBlank Integer criar, @NotBlank Integer editar, @NotBlank Integer deletar) {
+	public PermissaoModel(@NotBlank RecursoMapEnum recurso, @NotBlank Boolean listar, @NotBlank Boolean buscar, @NotBlank Boolean criar, @NotBlank Boolean editar, @NotBlank Boolean deletar) {
 		super();
 		this.recurso = recurso;
 		this.listar = listar;

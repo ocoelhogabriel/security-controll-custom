@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ocoelhogabriel.security_control_custom.application.dto.PlantaModel;
 import com.ocoelhogabriel.security_control_custom.application.dto.PlantaDTO;
-import com.ocoelhogabriel.security_control_custom.application.usecase.IPlantaService;
+import com.ocoelhogabriel.security_control_custom.domain.service.IPlantaService;
 import com.ocoelhogabriel.security_control_custom.infrastructure.utils.Utils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

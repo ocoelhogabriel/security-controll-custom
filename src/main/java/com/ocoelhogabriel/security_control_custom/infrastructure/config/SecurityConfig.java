@@ -2,10 +2,14 @@ package com.ocoelhogabriel.security_control_custom.infrastructure.config;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
+import com.ocoelhogabriel.security_control_custom.infrastructure.security.CustomPermissionEvaluator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -21,48 +25,61 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity // Habilita a segurança de método
 @SecurityScheme(name = "bearerAuth", description = "JWT Authentication", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT", in = SecuritySchemeIn.HEADER)
 public class SecurityConfig {
 
-//	@Autowired
-//	@Lazy
-//	private JWTAuthFilter authFilter;
+    private final JWTAuthFilter authFilter;
+    private final CustomPermissionEvaluator customPermissionEvaluator;
 
-	private static final String[] WHITE_LIST_URL = { "/api/medicao/v1/criarMedicao/**", "/api/medicao/v2",
-			"/api/modulo-device/v1/keepAlive/**", "/api/modulo-device/v1/auth-validate", "/api/modulo-device/v1/auth",
-			"/api/autenticacao/v1/**", "/v2/api-docs", "/v3/api-docs", "/v3/api-docs/**", "/swagger-resources",
-			"/swagger-resources/**", "/configuration/ui", "/configuration/security", "/swagger-ui/**", "/webjars/**",
-			"/swagger-ui.html", "/swagger-ui/index.html" };
+    public SecurityConfig(JWTAuthFilter authFilter, CustomPermissionEvaluator customPermissionEvaluator) {
+        this.authFilter = authFilter;
+        this.customPermissionEvaluator = customPermissionEvaluator;
+    }
 
-	@Bean
-	SecurityFilterChain filterChain(JWTAuthFilter authFilter, HttpSecurity http) throws Exception {
-		http.csrf(csrf -> csrf.disable())
-				// Filtro de requisição
-				.addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
-				.authorizeHttpRequests(requests -> requests
-						// list white request
-						.requestMatchers(WHITE_LIST_URL).permitAll()
-						// .anyRequest().permitAll())
-						.anyRequest().authenticated())
-				// Sessão
-				.sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
-				// Lidar com Exceções
-				.exceptionHandling(ex -> ex
-						// Acesso negado
-						.accessDeniedHandler(new CustomAccessDeniedHandler())
-						// Acesso negado por endpoint
-						.authenticationEntryPoint(new CustomAuthenticationEntryPoint()));
-		return http.build();
-	}
+    private static final String[] WHITE_LIST_URL = { "/api/medicao/v1/criarMedicao/**", "/api/medicao/v2",
+            "/api/modulo-device/v1/keepAlive/**", "/api/modulo-device/v1/auth-validate", "/api/modulo-device/v1/auth",
+            "/api/autenticacao/v1/**", "/v2/api-docs", "/v3/api-docs", "/v3/api-docs/**", "/swagger-resources",
+            "/swagger-resources/**", "/configuration/ui", "/configuration/security", "/swagger-ui/**", "/webjars/**",
+            "/swagger-ui.html", "/swagger-ui/index.html" };
 
-	@Bean
-	PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+    @Bean
+    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.csrf(csrf -> csrf.disable())
+                // Filtro de requisição
+                .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(requests -> requests
+                        // list white request
+                        .requestMatchers(WHITE_LIST_URL).permitAll()
+                        // .anyRequest().permitAll())
+                        .anyRequest().authenticated())
+                // Sessão
+                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
+                // Lidar com Exceções
+                .exceptionHandling(ex -> ex
+                        // Acesso negado
+                        .accessDeniedHandler(new CustomAccessDeniedHandler())
+                        // Acesso negado por endpoint
+                        .authenticationEntryPoint(new CustomAuthenticationEntryPoint()));
+        return http.build();
+    }
 
-	@Bean
-	AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-			throws Exception {
-		return authenticationConfiguration.getAuthenticationManager();
-	}
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    // Bean para registrar o CustomPermissionEvaluator
+    @Bean
+    public MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
+        DefaultMethodSecurityExpressionHandler expressionHandler = new DefaultMethodSecurityExpressionHandler();
+        expressionHandler.setPermissionEvaluator(customPermissionEvaluator);
+        return expressionHandler;
+    }
 }

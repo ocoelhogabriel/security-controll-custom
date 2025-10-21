@@ -1,10 +1,24 @@
 package com.ocoelhogabriel.security_control_custom.application.service;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.ocoelhogabriel.security_control_custom.domain.entity.CompanyDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ResourcesDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ScopeDetailsDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.UserDomain;
+import com.ocoelhogabriel.security_control_custom.domain.repository.CompanyRepository;
+import com.ocoelhogabriel.security_control_custom.domain.repository.ResourcesRepository;
+import com.ocoelhogabriel.security_control_custom.domain.repository.ScopeDetailsRepository;
+import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.specification.CompanySpecifications;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,176 +28,232 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import com.ocoelhogabriel.security_control_custom.application.handler.AbrangenciaHandler;
 import com.ocoelhogabriel.security_control_custom.application.dto.EmpresaModel;
 import com.ocoelhogabriel.security_control_custom.application.dto.EmpresaDTO;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Company;
-import com.ocoelhogabriel.security_control_custom.application.dto.CheckAbrangenciaRec;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.repository.CompanyJpaRepository;
-import com.ocoelhogabriel.security_control_custom.application.usecase.IEmpresaService;
+import com.ocoelhogabriel.security_control_custom.domain.service.IEmpresaService;
 import com.ocoelhogabriel.security_control_custom.infrastructure.utils.message.MessageResponse;
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class EmpresaServiceImpl implements IEmpresaService {
 
-	private static final Logger log = LoggerFactory.getLogger(EmpresaServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(EmpresaServiceImpl.class);
 
-	@Autowired
-	private CompanyJpaRepository companyJpaRepository;
+    @Autowired
+    private CompanyRepository companyRepository;
 
-	@Autowired
-	private AbrangenciaHandler abrangenciaHandler;
+    @Autowired
+    private ScopeDetailsRepository scopeDetailsRepository;
 
-	private static final String EMPRESA = "EMPRESA";
+    @Autowired
+    private ResourcesRepository resourcesRepository;
 
-	private CheckAbrangenciaRec findAbrangencia() {
-		return abrangenciaHandler.checkAbrangencia(EMPRESA);
-	}
+    private final Gson gson = new Gson();
 
-	@Override
-	public ResponseEntity<Void> empresaDeleteById(Long codigo) throws IOException {
+    private static final String EMPRESA_RESOURCE_NAME = "EMPRESA";
 
-		try {
-			var empresa = findByIdEntity(codigo);
-			if (empresa == null)
-				throw new EntityNotFoundException("Empresa não encontrada com o código: " + codigo);
+    @Override
+    public ResponseEntity<Void> empresaDeleteById(Long codigo) throws IOException {
+        try {
+            var empresa = findByIdEntity(codigo);
+            if (empresa == null)
+                throw new EntityNotFoundException("Empresa não encontrada com o código: " + codigo);
 
-			companyJpaRepository.deleteById(empresa.getId());
-			return MessageResponse.noContent();
-		} catch (EmptyResultDataAccessException e) {
-			log.error("Erro ao deletar a empresa. Erro: ", e);
-			throw new EntityNotFoundException("Empresa não encontrada com o código: " + codigo, e);
-		}
-	}
+            companyRepository.deleteById(empresa.getId());
+            return MessageResponse.noContent();
+        } catch (EmptyResultDataAccessException e) {
+            log.error("Erro ao deletar a empresa. Erro: ", e);
+            throw new EntityNotFoundException("Empresa não encontrada com o código: " + codigo, e);
+        }
+    }
 
-	@Override
-	public ResponseEntity<Page<EmpresaDTO>> empresaFindAllPaginado(String nome, Pageable pageable) throws IOException {
-		Objects.requireNonNull(pageable, "Pageable da Empresa está nulo.");
+    @Override
+    public ResponseEntity<Page<EmpresaDTO>> empresaFindAllPaginado(String nome, Pageable pageable) throws IOException {
+        Objects.requireNonNull(pageable, "Pageable da Empresa está nulo.");
 
-		Specification<Company> spec = Specification.where(null);
+        Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
+        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME);
 
-		if (findAbrangencia().isHier() == 0) {
-			spec = spec.and(Company.filterByFields(nome, null));
-		} else {
-			spec = spec.and(Company.filterByFields(nome, findAbrangencia().listAbrangencia()));
-		}
+        Specification<CompanyDomain> finalSpec = CompanySpecifications.withScopeFilters(scopeFilters);
 
-		Page<Company> result = companyJpaRepository.findAll(spec, pageable);
-		return MessageResponse.success(result.map(EmpresaDTO::new));
-	}
+        if (nome != null && !nome.isEmpty()) {
+            finalSpec = finalSpec.and(CompanySpecifications.withNameLike(nome));
+        }
 
-	@Override
-	public List<EmpresaDTO> sendListAbrangenciaEmpresaDTO() {
-		return companyJpaRepository.findAll().stream().map(EmpresaDTO::new).toList();
-	}
+        Page<CompanyDomain> result = companyRepository.findAll(pageable);
+        return MessageResponse.success(result.map(EmpresaDTO::new));
+    }
 
-	@Override
-	public ResponseEntity<List<EmpresaDTO>> empresaFindAll() throws IOException {
+    @Override
+    public List<EmpresaDTO> sendListAbrangenciaEmpresaDTO() {
+        Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
+        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME);
+        Specification<CompanyDomain> finalSpec = CompanySpecifications.withScopeFilters(scopeFilters);
+        return companyRepository.findAll().stream().map(EmpresaDTO::new).toList();
+    }
 
-		Specification<Company> spec = Specification.where(null);
+    @Override
+    public ResponseEntity<List<EmpresaDTO>> empresaFindAll() throws IOException {
+        Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
+        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME);
+        Specification<CompanyDomain> finalSpec = CompanySpecifications.withScopeFilters(scopeFilters);
 
-		if (findAbrangencia().isHier() == 0) {
-			spec = spec.and(Company.filterByFields(null, null));
-		} else {
-			spec = spec.and(Company.filterByFields(null, findAbrangencia().listAbrangencia()));
-		}
-		List<Company> result = companyJpaRepository.findAll(spec);
-		return MessageResponse.success(result.stream().map(EmpresaDTO::new).toList());
-	}
+        List<CompanyDomain> result = companyRepository.findAll();
+        return MessageResponse.success(result.stream().map(EmpresaDTO::new).toList());
+    }
 
-	@Override
-	public ResponseEntity<EmpresaDTO> empresaUpdate(Long codigo, EmpresaModel empresaModel) throws IOException {
-		Objects.requireNonNull(empresaModel.getCnpj(), "CNPJ da Empresa está nulo.");
-		Objects.requireNonNull(empresaModel.getNome(), "Nome da Empresa está nulo.");
+    @Override
+    public ResponseEntity<EmpresaDTO> empresaUpdate(Long codigo, EmpresaModel empresaModel) throws IOException {
+        Objects.requireNonNull(empresaModel.getCnpj(), "CNPJ da Empresa está nulo.");
+        Objects.requireNonNull(empresaModel.getNome(), "Nome da Empresa está nulo.");
 
-		var empresa = findByIdEntity(codigo);
+        CompanyDomain empresa = findByIdEntity(codigo);
 
-		String nomeFantasia = Optional.ofNullable(empresaModel.getNomeFantasia()).orElse(empresa.getTradeName());
-		String telefone = Optional.ofNullable(empresaModel.getTelefone()).orElse(empresa.getContact());
+        String nomeFantasia = Optional.ofNullable(empresaModel.getNomeFantasia()).orElse(empresa.getTradeName());
+        String telefone = Optional.ofNullable(empresaModel.getTelefone()).orElse(empresa.getContact());
 
-		empresa.setDocument(empresaModel.getCnpj());
-		empresa.setName(empresaModel.getNome());
-		empresa.setTradeName(nomeFantasia);
-		empresa.setContact(telefone);
+        empresa.setDocument(empresaModel.getCnpj());
+        empresa.setName(empresaModel.getNome());
+        empresa.setTradeName(nomeFantasia);
+        empresa.setContact(telefone);
 
-		return MessageResponse.success(new EmpresaDTO(companyJpaRepository.save(empresa)));
-	}
+        return MessageResponse.success(new EmpresaDTO(companyRepository.save(empresa)));
+    }
 
-	@Override
-	public ResponseEntity<EmpresaDTO> empresaSave(EmpresaModel empresaModel) throws IOException {
-		Objects.requireNonNull(empresaModel.getCnpj(), "CNPJ da Empresa está nulo.");
-		Objects.requireNonNull(empresaModel.getNome(), "Nome da Empresa está nulo.");
+    @Override
+    public ResponseEntity<EmpresaDTO> empresaSave(EmpresaModel empresaModel) throws IOException {
+        Objects.requireNonNull(empresaModel.getCnpj(), "CNPJ da Empresa está nulo.");
+        Objects.requireNonNull(empresaModel.getNome(), "Nome da Empresa está nulo.");
 
-		try {
-			Company company = new Company(null, empresaModel.getCnpj(), empresaModel.getNome(), empresaModel.getNomeFantasia(), empresaModel.getTelefone());
-			Company savedCompany = companyJpaRepository.save(company);
-			return MessageResponse.create(new EmpresaDTO(savedCompany));
-		} catch (Exception e) {
-			log.error("Erro ao realizar o cadastro de uma empresa.", e);
-			throw new IOException("Erro ao realizar o cadastro de uma empresa.", e);
-		}
-	}
+        try {
+            CompanyDomain companyDomain = new CompanyDomain(null,
+                    empresaModel.getCnpj(),
+                    empresaModel.getNome(),
+                    empresaModel.getNomeFantasia(),
+                    empresaModel.getTelefone());
+            CompanyDomain savedCompany = companyRepository.save(companyDomain);
+            return MessageResponse.create(new EmpresaDTO(savedCompany));
+        } catch (Exception e) {
+            log.error("Erro ao realizar o cadastro de uma empresa.", e);
+            throw new IOException("Erro ao realizar o cadastro de uma empresa.", e);
+        }
+    }
 
-	@Override
-	public ResponseEntity<EmpresaDTO> findByIdApi(Long codigo) throws IOException {
+    @Override
+    public ResponseEntity<EmpresaDTO> findByIdApi(Long codigo) throws IOException {
+        CompanyDomain empresa = findByIdEntity(codigo);
+        if (empresa == null) {
+            throw new EntityNotFoundException("Empresa não encontrada ou fora da sua abrangência.");
+        }
+        return MessageResponse.success(new EmpresaDTO(empresa));
+    }
 
+    @Override
+    public ResponseEntity<EmpresaDTO> empresaFindByCnpjApi(Long cnpj) throws IOException {
+        CompanyDomain company = empresaFindByCnpjEntity(cnpj);
+        if (company == null) {
+            throw new EntityNotFoundException("Empresa não encontrada ou fora da sua abrangência.");
+        }
+        return MessageResponse.success(new EmpresaDTO(company));
+    }
 
-		var empresa = companyJpaRepository.findById(codigo).orElse(null);
-		if (empresa == null) {
-			throw new EntityNotFoundException("Empresa não encontrada.");
-		}
+    public CompanyDomain findById(Long codigo) {
+        Objects.requireNonNull(codigo, "Código da Empresa está nulo.");
+        return findByIdEntity(codigo);
+    }
 
-		Long idPermitted = abrangenciaHandler.findIdAbrangenciaPermi(findAbrangencia(), empresa.getId());
-		if (idPermitted == null) {
-			throw new EntityNotFoundException("Sem Abrangência para essa empresa.");
-		}
-		return MessageResponse.success(new EmpresaDTO(empresa));
-	}
+    public CompanyDomain empresaFindByCnpjEntity(Long cnpj) {
+        Objects.requireNonNull(cnpj, "CNPJ da Empresa está nulo.");
+        Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
+        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME);
 
-	@Override
-	public ResponseEntity<EmpresaDTO> empresaFindByCnpjApi(Long codigo) throws IOException {
-		Company company = empresaFindByCnpjEntity(codigo);
-		if (company == null) {
-			throw new EntityNotFoundException("Empresa não encontrada.");
-		}
+        Specification<CompanyDomain> finalSpec = CompanySpecifications.withScopeFilters(scopeFilters)
+                .and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("document"), cnpj));
 
-		Long idPermitted = abrangenciaHandler.findIdAbrangenciaPermi(findAbrangencia(), company.getId());
-		if (idPermitted == null) {
-			throw new EntityNotFoundException("Sem Abrangência para essa empresa.");
-		}
+        return companyRepository.findByDocument(cnpj).orElse(null);
+    }
 
-		return MessageResponse.success(new EmpresaDTO(company));
-	}
+    // Método para uso interno (ex: CreateAdminHandler) que não aplica filtros de abrangência
+    public CompanyDomain empresaFindByCnpjEntityInternal(Long cnpj) {
+        Objects.requireNonNull(cnpj, "CNPJ da Empresa está nulo.");
+        return companyRepository.findByDocument(cnpj).orElse(null);
+    }
 
-	public Company findById(Long codigo) {
-		Objects.requireNonNull(codigo, "Código da Empresa está nulo.");
-		Company emp = companyJpaRepository.findById(codigo).orElse(null);
-		if (emp == null) {
-			return null;
-		}
-		return findByIdAbrangencia(emp);
-	}
+    public CompanyDomain findByIdEntity(@NonNull Long codigo) {
+        Objects.requireNonNull(codigo, "Código da Empresa está nulo.");
+        Optional<UserDomain> authenticatedUser = getAuthenticatedUserDomain();
+        Map<String, Object> scopeFilters = getScopeFilters(authenticatedUser, EMPRESA_RESOURCE_NAME);
 
-	public Company findByIdAbrangencia(Company emp) {
+        Specification<CompanyDomain> finalSpec = CompanySpecifications.withScopeFilters(scopeFilters)
+                .and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("id"), codigo));
 
-		var findIdAbrangencia = abrangenciaHandler.findIdAbrangenciaPermi(findAbrangencia(), emp.getId());
-		if (findIdAbrangencia == null) {
-			return null;
-		}
-		return emp;
-	}
+        return companyRepository.findById(codigo).orElse(null);
+    }
 
-	public Company empresaFindByCnpjEntity(Long codigo) {
-		Objects.requireNonNull(codigo, "Código da Empresa está nulo.");
-		return companyJpaRepository.findByEmpcnp(codigo).orElse(null);
-	}
+    // Método para uso interno (ex: CreateAdminHandler) que não aplica filtros de abrangência
+    public CompanyDomain findByIdEntityInternal(@NonNull Long codigo) {
+        Objects.requireNonNull(codigo, "Código da Empresa está nulo.");
+        return companyRepository.findById(codigo).orElse(null);
+    }
 
-	public Company findByIdEntity(@NonNull Long codigo) {
-		Objects.requireNonNull(codigo, "Código da Empresa está nulo.");
-		return companyJpaRepository.findById(codigo).orElse(null);
-	}
+    /**
+     * Retorna o Optional<UserDomain> do usuário autenticado.
+     *
+     * @return Optional<UserDomain> do usuário autenticado, ou Optional.empty() se não houver usuário autenticado ou for inválido.
+     */
+    private Optional<UserDomain> getAuthenticatedUserDomain() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof UserDomain)) {
+            return Optional.empty();
+        }
+        return Optional.of((UserDomain) authentication.getPrincipal());
+    }
 
+    /**
+     * Extrai os filtros de abrangência para um dado recurso e usuário.
+     *
+     * @param authenticatedUser Optional<UserDomain> do usuário autenticado.
+     * @param resourceName      O nome do recurso (ex: "USUARIO", "EMPRESA").
+     * @return Um mapa de filtros (ex: {"companyId": 1, "plantId": [1, 2]}).
+     */
+    private Map<String, Object> getScopeFilters(Optional<UserDomain> authenticatedUser, String resourceName) {
+        if (authenticatedUser.isEmpty() || authenticatedUser.get().getScopeDomain() == null || resourceName == null) {
+            return Collections.emptyMap();
+        }
+
+        UserDomain user = authenticatedUser.get();
+
+        ResourcesDomain resource = resourcesRepository.findByName(resourceName)
+                .orElseThrow(() -> new EntityNotFoundException("Recurso não encontrado: " + resourceName));
+
+        Optional<ScopeDetailsDomain> scopeDetailsOptional = scopeDetailsRepository.findByScopeIdAndResourceId(user.getScopeDomain().getId(),
+                resource.getId());
+
+        if (scopeDetailsOptional.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        ScopeDetailsDomain scopeDetails = scopeDetailsOptional.get();
+        String abddatJson = scopeDetails.getData();
+
+        if (abddatJson == null || abddatJson.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> filters = new HashMap<>();
+        try {
+            Type type = new TypeToken<Map<String, Object>>() {
+            }.getType();
+            filters = gson.fromJson(abddatJson, type);
+        } catch (Exception e) {
+            log.error("Erro ao parsear abddat JSON para filtros de abrangência: " + abddatJson, e);
+            return Collections.emptyMap();
+        }
+
+        return filters;
+    }
 }

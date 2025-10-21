@@ -4,11 +4,11 @@ public class PermissionDomain {
     private Long id;
     private ProfileDomain profileDomain;
     private ResourcesDomain resource;
-    private Integer list;
-    private Integer find;
-    private Integer create;
-    private Integer edit;
-    private Integer delete;
+    private Boolean list;
+    private Boolean find;
+    private Boolean create;
+    private Boolean edit;
+    private Boolean delete;
 
     public Long getId() {
         return id;
@@ -18,27 +18,59 @@ public class PermissionDomain {
         this.id = id;
     }
 
-    public ProfileDomain getPerfil() {
+    public ProfileDomain getProfileDomain() {
         return profileDomain;
     }
 
-    public void setPerfil(ProfileDomain profileDomain) {
+    public void setProfileDomain(ProfileDomain profileDomain) {
         this.profileDomain = profileDomain;
     }
 
-    public Integer getList() {
+    public ResourcesDomain getResource() {
+        return resource;
+    }
+
+    public void setResource(ResourcesDomain resource) {
+        this.resource = resource;
+    }
+
+    public Boolean getList() {
         return list;
     }
 
-    public void setList(Integer list) {
+    public void setList(Boolean list) {
         this.list = list;
     }
 
-    public Integer getDelete() {
+    public Boolean getFind() {
+        return find;
+    }
+
+    public void setFind(Boolean find) {
+        this.find = find;
+    }
+
+    public Boolean getCreate() {
+        return create;
+    }
+
+    public void setCreate(Boolean create) {
+        this.create = create;
+    }
+
+    public Boolean getEdit() {
+        return edit;
+    }
+
+    public void setEdit(Boolean edit) {
+        this.edit = edit;
+    }
+
+    public Boolean getDelete() {
         return delete;
     }
 
-    public void setDelete(Integer delete) {
+    public void setDelete(Boolean delete) {
         this.delete = delete;
     }
 
@@ -74,7 +106,8 @@ public class PermissionDomain {
         return builder.toString();
     }
 
-    public PermissionDomain(Long id, ProfileDomain profileDomain, ResourcesDomain resource, Integer list, Integer find, Integer create, Integer edit, Integer delete) {
+    public PermissionDomain(Long id, ProfileDomain profileDomain, ResourcesDomain resource, Boolean list, Boolean find, Boolean create, Boolean edit,
+            Boolean delete) {
         super();
         this.id = id;
         this.profileDomain = profileDomain;

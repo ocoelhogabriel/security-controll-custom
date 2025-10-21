@@ -13,13 +13,13 @@ import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.ent
 
 public interface ScopeJpaRepository extends JpaRepository<Scope, Long>, JpaSpecificationExecutor<Scope> {
 
-	Page<Scope> findByAbrcodIn(Pageable pageable, Collection<Long> list);
+	Page<Scope> findByIdIn(Pageable pageable, Collection<Long> list);
 
-	Page<Scope> findByAbrnomLike(String nome, Pageable pageable);
+	Page<Scope> findByNameLike(String name, Pageable pageable);
 
-	Page<Scope> findByAbrnomLikeAndAbrcodIn(String nome, Pageable pageable, Collection<Long> list);
+	Page<Scope> findByNameLikeAndIdIn(String name, Pageable pageable, Collection<Long> list);
 
-	List<Scope> findByAbrcodIn(Collection<Long> list);
+	List<Scope> findByIdIn(Collection<Long> list);
 
-	Optional<Scope> findByAbrnomLike(String nome);
+	Optional<Scope> findByName(String name);
 }

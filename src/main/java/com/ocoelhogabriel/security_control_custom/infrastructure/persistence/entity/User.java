@@ -9,7 +9,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 @Entity
-@Table(name = "user")
+@Table(name = "app_user") // Renomeado de "user" para "app_user"
 public class User implements UserDetails {
 
     private static final long serialVersionUID = 1L;
@@ -176,7 +176,7 @@ public class User implements UserDetails {
 
     @Override
     public String getPassword() {
-        return this.getPassword();
+        return this.password;
     }
 
     @Override

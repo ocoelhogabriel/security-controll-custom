@@ -1,7 +1,7 @@
 package com.ocoelhogabriel.security_control_custom.application.dto;
 
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Company;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Plan;
+import com.ocoelhogabriel.security_control_custom.domain.entity.CompanyDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.PlanDomain;
 
 public class PlantaDTO extends CodigoExtends {
 
@@ -32,18 +32,16 @@ public class PlantaDTO extends CodigoExtends {
 		super(codigo);
 	}
 
-	public PlantaDTO(Plan plan) {
-
-		this.setCodigo(plan.getId());
-		this.empresa = new EmpresaDTO(plan.getEmpresa());
-		this.nome = plan.getName();
+	public PlantaDTO(PlanDomain planDomain) {
+		this.setCodigo(planDomain.getId());
+		this.empresa = new EmpresaDTO(planDomain.getCompanyDomain());
+		this.nome = planDomain.getName();
 	}
 
-	public PlantaDTO(Plan plan, Company company) {
-
-		this.setCodigo(plan.getId());
-		this.empresa = company == null ? null : new EmpresaDTO(company);
-		this.nome = plan.getName();
+	public PlantaDTO(PlanDomain planDomain, CompanyDomain companyDomain) {
+		this.setCodigo(planDomain.getId());
+		this.empresa = companyDomain == null ? null : new EmpresaDTO(companyDomain);
+		this.nome = planDomain.getName();
 	}
 
 	@Override
@@ -73,5 +71,4 @@ public class PlantaDTO extends CodigoExtends {
 	public void setNome(String nome) {
 		this.nome = nome;
 	}
-
 }

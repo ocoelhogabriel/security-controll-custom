@@ -3,6 +3,7 @@ package com.ocoelhogabriel.security_control_custom.application.handler;
 import java.util.List;
 
 import com.ocoelhogabriel.security_control_custom.application.service.UsuarioServiceImpl;
+import com.ocoelhogabriel.security_control_custom.domain.entity.UserDomain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,43 +25,45 @@ import jakarta.persistence.EntityNotFoundException;
 @Component
 public class AbrangenciaHandler {
 
-	private final Logger log = LoggerFactory.getLogger(AbrangenciaHandler.class);
+    private final Logger log = LoggerFactory.getLogger(AbrangenciaHandler.class);
 
-	@Autowired
-	@Lazy
-	private AbrangenciaServiceImpl abrangenciaService;
-	@Autowired
-	@Lazy
-	private RecursoServiceImpl recursoService;
-	@Autowired
-	@Lazy
-	private UsuarioServiceImpl usuarioService;
+    @Autowired
+    @Lazy
+    private AbrangenciaServiceImpl abrangenciaService;
+    @Autowired
+    @Lazy
+    private RecursoServiceImpl recursoService;
+    @Autowired
+    @Lazy
+    private UsuarioServiceImpl usuarioService;
 
-	public CheckAbrangenciaRec checkAbrangencia(String text) {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		String currentUserName = authentication.getName();
-		User user = usuarioService.findLoginEntity(currentUserName);
-		if (user == null)
-			throw new EntityNotFoundException("Usuário não encontrado: " + currentUserName);
+    public CheckAbrangenciaRec checkAbrangencia(String text) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUserName = authentication.getName();
+        UserDomain user = usuarioService.findLoginEntity(currentUserName);
+        if (user == null)
+            throw new EntityNotFoundException("Usuário não encontrado: " + currentUserName);
 
-		var recurso = recursoService.findByIdEntity(text);
-		var abrangencia = abrangenciaService.findByAbrangenciaAndRecursoContainingAbrangencia(user.getAbrangencia(), recurso);
-		if (abrangencia == null)
-			throw new IllegalArgumentException("Não foi encontrado nenhum detalhe de Abrangência para o usuário " + currentUserName + " no recurso " + text);
+        var recurso = recursoService.findByIdEntity(text);
+        var abrangencia = abrangenciaService.findByAbrangenciaAndRecursoContainingAbrangencia(user.getScopeDomain().getId(), recurso.getName());
+        if (abrangencia == null)
+            throw new IllegalArgumentException(
+                    "Não foi encontrado nenhum detalhe de Abrangência para o usuário " + currentUserName + " no recurso " + text);
 
-		List<Long> ids;
-		try {
-			ids = new ObjectMapper().readValue(abrangencia.getAbddat(), new TypeReference<List<Long>>() {
-			});
-		} catch (JsonProcessingException e) {
-			log.error("Error ao buscar o item da abrangencia: ", e);
-			ids = null;
-		}
-		return new CheckAbrangenciaRec(ids, abrangencia.getHierarchy());
-	}
+        List<Long> ids;
+        try {
+            ids = new ObjectMapper().readValue(abrangencia.getData(), new TypeReference<List<Long>>() {
+            });
+        } catch (JsonProcessingException e) {
+            log.error("Error ao buscar o item da abrangencia: ", e);
+            ids = null;
+        }
+        return new CheckAbrangenciaRec(ids, abrangencia.getHierarchy());
+    }
 
-	public Long findIdAbrangenciaPermi(CheckAbrangenciaRec checkAbrangencia, Long codigo) {
-		return checkAbrangencia.isHier() == 0 ? codigo : checkAbrangencia.listAbrangencia().stream().filter(map -> map.equals(codigo)).findFirst().orElse(null);
-	}
+    public Long findIdAbrangenciaPermi(CheckAbrangenciaRec checkAbrangencia, Long codigo) {
+        return checkAbrangencia.isHier() == 0 ? codigo
+                : checkAbrangencia.listAbrangencia().stream().filter(map -> map.equals(codigo)).findFirst().orElse(null);
+    }
 
 }

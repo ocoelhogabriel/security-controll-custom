@@ -2,7 +2,9 @@ package com.ocoelhogabriel.security_control_custom.infrastructure.persistence.ma
 
 import com.ocoelhogabriel.security_control_custom.domain.entity.CompanyDomain;
 import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Company;
+import org.springframework.stereotype.Component;
 
+@Component
 public class CompanyMapper {
 
     /**
@@ -30,6 +32,7 @@ public class CompanyMapper {
             return null;
         }
 
-        return new Company(domain.getId(), domain.getName(), domain.getTradeName(), domain.getContact());
+        // CORREÇÃO: Usar o construtor que inclui o campo 'document'
+        return new Company(domain.getId(), domain.getDocument(), domain.getName(), domain.getTradeName(), domain.getContact());
     }
 }

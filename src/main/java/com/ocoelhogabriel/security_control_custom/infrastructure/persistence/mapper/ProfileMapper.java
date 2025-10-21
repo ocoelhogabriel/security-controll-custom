@@ -2,7 +2,9 @@ package com.ocoelhogabriel.security_control_custom.infrastructure.persistence.ma
 
 import com.ocoelhogabriel.security_control_custom.domain.entity.ProfileDomain;
 import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Profile;
+import org.springframework.stereotype.Component;
 
+@Component
 public class ProfileMapper {
 
     /**

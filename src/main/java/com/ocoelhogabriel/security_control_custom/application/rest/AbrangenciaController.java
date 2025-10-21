@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ocoelhogabriel.security_control_custom.application.dto.AbrangenciaModel;
 import com.ocoelhogabriel.security_control_custom.application.dto.AbrangenciaListaDetalhesDTO;
 import com.ocoelhogabriel.security_control_custom.application.dto.ItensAbrangentes;
-import com.ocoelhogabriel.security_control_custom.application.usecase.IAbrangenciaService;
+import com.ocoelhogabriel.security_control_custom.domain.service.IAbrangenciaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
@@ -53,11 +53,11 @@ public class AbrangenciaController extends SecurityRestController {
 		return abrangenciaServImpl.findAll();
 	}
 
-	@GetMapping("/v1/lista-items-abrangentes")
-	@Operation(description = "Listar todos os itens abrangentes por recurso. Retorna uma lista detalhada dos itens abrangentes organizados por recurso.")
-	public ResponseEntity<ItensAbrangentes> buscarListarItemsAbrangentes() throws EntityNotFoundException, IOException {
-		return abrangenciaServImpl.findByItemAbrangence();
-	}
+//	@GetMapping("/v1/lista-items-abrangentes")
+//	@Operation(description = "Listar todos os itens abrangentes por recurso. Retorna uma lista detalhada dos itens abrangentes organizados por recurso.")
+//	public ResponseEntity<ItensAbrangentes> buscarListarItemsAbrangentes() throws EntityNotFoundException, IOException {
+//		return abrangenciaServImpl.findByItemAbrangence();
+//	}
 
 	@GetMapping("/v1/paginado")
 	@Operation(description = "Busca paginada de abrangências cadastradas. Fornece uma lista de abrangências com paginação, filtragem e ordenação.")

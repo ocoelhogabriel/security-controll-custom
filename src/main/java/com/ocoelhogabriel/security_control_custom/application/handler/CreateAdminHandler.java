@@ -6,6 +6,10 @@ import com.ocoelhogabriel.security_control_custom.application.dto.EmpresaModel;
 import com.ocoelhogabriel.security_control_custom.application.dto.PermissaoModel;
 import com.ocoelhogabriel.security_control_custom.application.dto.RecursoModel;
 import com.ocoelhogabriel.security_control_custom.application.dto.UsuarioModel;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ProfileDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ResourcesDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ScopeDetailsDomain;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ScopeDomain;
 import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Scope;
 import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.ScopeDetails;
 import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Profile;
@@ -39,7 +43,7 @@ public class CreateAdminHandler {
 
     private static final Long CNPJTSI = Long.valueOf("44772937000150");
 
-    private static final String[] listaRecursos = { "LOGGER", "USUARIO", "PERFIL", "RECURSO", "ABRANGENCIA", "EMPRESA", "PLANTA" };
+    private static final String[] listaRecursos = { "USUARIO", "PERFIL", "RECURSO", "ABRANGENCIA", "EMPRESA", "PLANTA" };
     private static final String[] listaAbrangencia = { "EMPRESA", "PLANTA", };
 
     @PostConstruct
@@ -63,7 +67,7 @@ public class CreateAdminHandler {
     public void createEmpresa() {
         try {
             logs.info("createEmpresa Start... ");
-            var empresa = empresaService.empresaFindByCnpjEntity(CNPJTSI);
+            var empresa = empresaService.empresaFindByCnpjEntityInternal(CNPJTSI);
 
             EmpresaModel empresaModel = new EmpresaModel(CNPJTSI, "Telemática - Sistemas Inteligentes", "TSI", "(99)99999-9999");
             if (empresa == null)
@@ -79,14 +83,14 @@ public class CreateAdminHandler {
             logs.info("createPerfil Start... ");
             var perfil = perfilPermissaoService.findByIdPerfilEntity("ADMIN");
             if (perfil == null)
-                perfil = perfilPermissaoService.createUpdatePerfil(new Profile(null, "ADMIN", "Perfil do Administrador."));
+                perfil = perfilPermissaoService.createUpdatePerfil(new ProfileDomain(null, "ADMIN", "Perfil do Administrador."));
             else
-                perfil = perfilPermissaoService.createUpdatePerfil(new Profile(perfil.getId(), "ADMIN", "Perfil do Administrador."));
+                perfil = perfilPermissaoService.createUpdatePerfil(new ProfileDomain(perfil.getId(), "ADMIN", "Perfil do Administrador."));
             int listItem = listaRecursos.length;
             for (int i = 0; i < listItem; i++) {
                 RecursoMapEnum recursoEnum = RecursoMapEnum.valueOf(listaRecursos[i]);
                 var valueRecurso = perfilPermissaoService.findByPerfilAndRecurso(perfil, recursoService.findByIdEntity(recursoEnum.getNome()));
-                PermissaoModel permissao = new PermissaoModel(recursoEnum, 1, 1, 1, 1, 1);
+                PermissaoModel permissao = new PermissaoModel(recursoEnum, true, true, true, true, true);
                 if (valueRecurso == null)
                     perfilPermissaoService.saveEntityPermissao(perfil, permissao);
 
@@ -117,26 +121,26 @@ public class CreateAdminHandler {
         try {
             logs.info("createAbrangencia Start...");
 
-            Scope scope = abrangenciaService.findByIdEntity("ADMIN");
+            ScopeDomain scope = abrangenciaService.findByIdEntity("ADMIN");
 
             if (scope == null) {
-                scope = new Scope(null, "ADMIN", "Descrição Abrangencia ADMIN");
+                scope = new ScopeDomain(null, "ADMIN", "Descrição Abrangencia ADMIN");
             } else {
-                scope = new Scope(scope.getId(), "ADMIN", "Descrição Abrangencia ADMIN");
+                scope = new ScopeDomain(scope.getId(), "ADMIN", "Descrição Abrangencia ADMIN");
             }
-            abrangenciaService.createUpdateAbrangencia(scope);
+            scope = abrangenciaService.createUpdateAbrangencia(scope); // <--- Correção aplicada aqui
 
             int listItem = listaAbrangencia.length;
-            for (int i = 0; i < listItem; i++) {
-                RecursoMapEnum recursoEnum = RecursoMapEnum.valueOf(listaAbrangencia[i]);
-                Resources resources = recursoService.findByIdEntity(recursoEnum.getNome());
+            for (String s : listaAbrangencia) {
+                RecursoMapEnum recursoEnum = RecursoMapEnum.valueOf(s);
+                ResourcesDomain resources = recursoService.findByIdEntity(recursoEnum.getNome());
 
                 JsonNodeConverter jsonNode = new JsonNodeConverter();
                 String data = jsonNode.convertToDatabaseColumn(new ObjectMapper().createArrayNode());
 
-                ScopeDetails abd = new ScopeDetails(null, scope, resources, 0, data);
+                ScopeDetailsDomain abd = new ScopeDetailsDomain(null, scope, resources, 0, data);
 
-                if (abrangenciaService.findByAbrangenciaAndRecursoContainingAbrangencia(scope, resources) == null)
+                if (abrangenciaService.findByAbrangenciaAndRecursoContainingAbrangencia(scope.getId(), resources.getName()) == null)
                     abrangenciaService.saveOrUpdateAbrangenciaDetalhes(scope, abd);
             }
         } catch (Exception e) {
@@ -147,11 +151,10 @@ public class CreateAdminHandler {
     public void createUsuario() {
         try {
             logs.info("createUsuario Start... ");
-            var empresa = empresaService.empresaFindByCnpjEntity(CNPJTSI);
+            var empresa = empresaService.empresaFindByCnpjEntityInternal(CNPJTSI);
             var perfil = perfilPermissaoService.findByIdPerfilEntity("ADMIN");
             var abrangencia = abrangenciaService.findByIdEntity("ADMIN");
-            UsuarioModel usuario = new UsuarioModel("ADMIN",
-                    Long.valueOf(0),
+            UsuarioModel usuario = new UsuarioModel("ADMIN", 0L,
                     "admin",
                     "admin",
                     "admin@admin.com",

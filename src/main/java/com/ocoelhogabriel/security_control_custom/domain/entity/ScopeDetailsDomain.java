@@ -12,16 +12,32 @@ public class ScopeDetailsDomain {
         return id;
     }
 
-    public void setId(Long abdcod) {
-        this.id = abdcod;
+    public void setId(Long id) {
+        this.id = id;
     }
 
-    public ScopeDomain getScope() {
+    public ScopeDomain getScopeDomain() {
         return scopeDomain;
     }
 
-    public void setScope(ScopeDomain scopeDomain) {
+    public void setScopeDomain(ScopeDomain scopeDomain) {
         this.scopeDomain = scopeDomain;
+    }
+
+    public ResourcesDomain getResource() {
+        return resource;
+    }
+
+    public void setResource(ResourcesDomain resource) {
+        this.resource = resource;
+    }
+
+    public Integer getHierarchy() {
+        return hierarchy;
+    }
+
+    public void setHierarchy(Integer hierarchy) {
+        this.hierarchy = hierarchy;
     }
 
     public String getData() {

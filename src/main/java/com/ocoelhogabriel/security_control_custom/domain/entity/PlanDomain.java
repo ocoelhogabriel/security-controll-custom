@@ -15,12 +15,6 @@ public class PlanDomain {
         this.companyDomain = companyDomain;
     }
 
-    public PlanDomain plantaUpdateOrSave(String name, CompanyDomain companyDomain) {
-        this.name = name;
-        this.companyDomain = companyDomain;
-        return this;
-    }
-
     public Long getId() {
         return id;
     }
@@ -37,11 +31,11 @@ public class PlanDomain {
         this.name = name;
     }
 
-    public CompanyDomain getEmpresa() {
+    public CompanyDomain getCompanyDomain() {
         return companyDomain;
     }
 
-    public void setEmpresa(CompanyDomain companyDomain) {
+    public void setCompanyDomain(CompanyDomain companyDomain) {
         this.companyDomain = companyDomain;
     }
 

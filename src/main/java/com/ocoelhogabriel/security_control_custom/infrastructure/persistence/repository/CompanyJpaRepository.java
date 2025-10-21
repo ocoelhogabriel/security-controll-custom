@@ -6,21 +6,20 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Company;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface CompanyJpaRepository {
+public interface CompanyJpaRepository extends JpaRepository<Company, Long> {
 
-	Optional<Company> findByEmpcnp(Long empcnp);
+    Optional<Company> findByDocument(Long document);
 
-	Page<Company> findByEmpcodIn(Pageable pageable, Collection<Long> list);
+    Page<Company> findByIdIn(Pageable pageable, Collection<Long> list);
 
-	Page<Company> findByEmpnomLike(String empnom, Pageable pageable);
+    Page<Company> findByNameLike(String name, Pageable pageable);
 
-	Page<Company> findByEmpnomLikeAndEmpcodIn(String empnom, Pageable pageable, Collection<Long> list);
+    Page<Company> findByNameLikeAndIdIn(String name, Pageable pageable, Collection<Long> ids);
 
-	List<Company> findByEmpcodIn(Collection<Long> abdcods);
+    List<Company> findByIdIn(Collection<Long> ids);
 
 }

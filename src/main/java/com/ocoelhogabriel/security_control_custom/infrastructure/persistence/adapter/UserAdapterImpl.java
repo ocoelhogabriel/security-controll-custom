@@ -11,21 +11,26 @@ import jakarta.persistence.criteria.Root;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Repository
-public class UserRepositoryImpl implements UserRepository {
+public class UserAdapterImpl implements UserRepository {
 
     private final UserJpaRepository usuarioJpaRepository;
     private final UserMapper userMapper;
 
     @Autowired
-    public UserRepositoryImpl(UserJpaRepository usuarioJpaRepository, UserMapper userMapper) {
+    public UserAdapterImpl(UserJpaRepository usuarioJpaRepository, UserMapper userMapper) {
         this.usuarioJpaRepository = usuarioJpaRepository;
         this.userMapper = userMapper;
     }
@@ -37,7 +42,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Optional<UserDomain> findByLogin(String login) {
-        return usuarioJpaRepository.findByUsulog(login).map(userMapper::toDomain);
+        return usuarioJpaRepository.findByLogin(login).map(userMapper::toDomain);
     }
 
     @Override
@@ -47,7 +52,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Page<UserDomain> findAll(Pageable pageable) {
-        return null;
+        return usuarioJpaRepository.findAll(pageable).map(userMapper::toDomain);
     }
 
     @Override
@@ -76,6 +81,26 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public boolean existsById(Long aLong) {
         return usuarioJpaRepository.existsById(aLong);
+    }
+
+    @Override
+    public List<UserDomain> findByIdIn(Collection<Long> ids) {
+        return usuarioJpaRepository.findByIdIn(ids).stream().map(userMapper::toDomain).collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<UserDomain> findByIdIn(Pageable pageable, Collection<Long> ids) {
+        return usuarioJpaRepository.findByIdIn(pageable, ids).map(userMapper::toDomain);
+    }
+
+    @Override
+    public Page<UserDomain> findByLoginLike(String login, Pageable pageable) {
+        return usuarioJpaRepository.findByLoginLike(login, pageable).map(userMapper::toDomain);
+    }
+
+    @Override
+    public Page<UserDomain> findByLoginLikeAndIdIn(String login, Pageable pageable, Collection<Long> ids) {
+        return usuarioJpaRepository.findByLoginLikeAndIdIn(login, pageable, ids).map(userMapper::toDomain);
     }
 
     /**
@@ -111,5 +136,6 @@ public class UserRepositoryImpl implements UserRepository {
         predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get(searchTerm)), likePattern));
 
     }
+
 
 }

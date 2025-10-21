@@ -7,27 +7,28 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Permission;
 import jakarta.transaction.Transactional;
 
-public interface PermissionJpaRepository extends JpaRepository<Permission, Long> {
+public interface PermissionJpaRepository extends JpaRepository<Permission, Long>, JpaSpecificationExecutor<Permission> {
 
 	@Transactional
-	void deleteByPerfil_Percod(Long percod);
+	void deleteByProfile_Id(Long profileId);
 
-	Optional<List<Permission>> findByPerfil_percod(Long codigo);
+	Optional<List<Permission>> findByProfile_Id(Long profileId);
 
-	Optional<List<Permission>> findByPerfil_PercodAndPemcodIn(Long codigo, Collection<Long> list);
+	Optional<List<Permission>> findByProfile_IdAndIdIn(Long profileId, Collection<Long> ids);
 
-	Optional<Permission> findByPerfil_percodAndRecurso_recnom(Long codigo, String recurso);
+	Optional<Permission> findByProfile_IdAndResource_Name(Long profileId, String resourceName);
 
-	List<Permission> findByPemcodIn(Collection<Long> list);
+	List<Permission> findByIdIn(Collection<Long> ids);
 
-	Page<Permission> findByPemcodIn(Pageable page, Collection<Long> list);
+	Page<Permission> findByIdIn(Pageable page, Collection<Long> ids);
 
-	Page<Permission> findByRecurso_RecnomLike(String nome, Pageable page);
+	Page<Permission> findByResource_NameLike(String name, Pageable page);
 
-	Page<Permission> findByRecurso_RecnomLikeAndPemcodIn(String nome, Pageable page, Collection<Long> list);
+	Page<Permission> findByResource_NameLikeAndIdIn(String name, Pageable page, Collection<Long> ids);
 
 }

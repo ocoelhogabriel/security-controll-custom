@@ -7,7 +7,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -17,8 +16,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 
 import com.ocoelhogabriel.security_control_custom.infrastructure.exception.CustomAccessDeniedHandler;
-import com.ocoelhogabriel.security_control_custom.application.handler.PermissaoHandler;
-import com.ocoelhogabriel.security_control_custom.application.handler.URLValidator;
 import com.ocoelhogabriel.security_control_custom.application.dto.TokenDeviceRecord;
 import com.ocoelhogabriel.security_control_custom.application.service.AuthServiceImpl;
 import com.ocoelhogabriel.security_control_custom.infrastructure.utils.AuthDeviceUtil;
@@ -38,20 +35,11 @@ public class JWTAuthFilter extends OncePerRequestFilter {
 	@Autowired
 	private UserDetailsService userDetailsService;
 
-	// @Autowired
-	// @Lazy
-	// private UsuarioServiceImpl userServImpl;
-
-	@Autowired
-	private PermissaoHandler permissionHandler;
-
 	@Override
 	protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
 		try {
 			TokenDeviceRecord token = this.recoverToken(request);
-			String requestURI = request.getRequestURI();
-			String method = request.getMethod();
-			URLValidator validationResponse;
+
 			if (token != null && token.device() != null) {
 				UserDetails user = userDetailsService.loadUserByUsername("device");
 				UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
@@ -61,16 +49,7 @@ public class JWTAuthFilter extends OncePerRequestFilter {
 					accessDeniedHandler.handle(request, response, new AccessDeniedException("Access Denied"));
 					return;
 				}
-				validationResponse = URLValidator.validateURL(requestURI, method);
-				if (validationResponse == null || validationResponse.getRecursoMapEnum() == null) {
-					accessDeniedHandler.handle(request, response, new AccessDeniedException("Access Denied"));
-					return;
-				}
-				filterChain.doFilter(request, response);
-				return;
-			}
-
-			if (token != null && token.token() != null) {
+			} else if (token != null && token.token() != null) {
 				String login = authRepository.validToken(token.token());
 				UserDetails user = userDetailsService.loadUserByUsername(login);
 
@@ -80,19 +59,6 @@ public class JWTAuthFilter extends OncePerRequestFilter {
 
 				if (authentication == null || !authentication.isAuthenticated()) {
 					accessDeniedHandler.handle(request, response, new AccessDeniedException("Access Denied"));
-					return;
-				}
-
-				String role = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst().orElse(null);
-
-				validationResponse = URLValidator.validateURL(requestURI, method);
-				if (validationResponse.getMessage().startsWith("Erro") || validationResponse.getMessage().startsWith("Erro ao processar a URL!") || validationResponse.getMessage().contains("código ausente ou inválido")) {
-					accessDeniedHandler.handle(request, response, new AccessDeniedException("Invalid URL: " + validationResponse.getMessage()));
-					return;
-				}
-				boolean hasPermission = permissionHandler.checkPermission(role, validationResponse, request.getMethod());
-				if (!hasPermission) {
-					accessDeniedHandler.handle(request, response, new AccessDeniedException("Not authorized to perform this action"));
 					return;
 				}
 			}

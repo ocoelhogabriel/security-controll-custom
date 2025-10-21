@@ -86,31 +86,4 @@ public class Profile implements Serializable {
 
 	}
 
-	public static Specification<Profile> filterByFields(String searchTerm) {
-		return (root, query, criteriaBuilder) -> {
-			List<Predicate> predicates = new ArrayList<>();
-
-			if (searchTerm != null && !searchTerm.isEmpty()) {
-				String likePattern = "%" + searchTerm.toLowerCase() + "%";
-
-				List<Predicate> searchPredicates = new ArrayList<>();
-
-				// Add predicates for string fields
-				searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), likePattern));
-				searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), likePattern));
-
-				// Attempt to convert the search term to Long
-				try {
-					Long searchTermLong = Long.valueOf(searchTerm);
-					searchPredicates.add(criteriaBuilder.equal(root.get("id"), searchTermLong));
-				} catch (NumberFormatException e) {
-					// Ignore if the conversion fails
-				}
-
-				predicates.add(criteriaBuilder.or(searchPredicates.toArray(Predicate[]::new)));
-			}
-
-			return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
-		};
-	}
 }

@@ -1,11 +1,8 @@
 package com.ocoelhogabriel.security_control_custom.domain.repository;
 
 import com.ocoelhogabriel.security_control_custom.domain.entity.ScopeDomain;
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Scope;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Collection;
 import java.util.List;
@@ -13,4 +10,13 @@ import java.util.Optional;
 
 public interface ScopeRepository extends DomainRepository<ScopeDomain, Long> {
 
+    Page<ScopeDomain> findByIdIn(Pageable pageable, Collection<Long> ids);
+
+    Page<ScopeDomain> findByNameLike(String name, Pageable pageable);
+
+    Page<ScopeDomain> findByNameLikeAndIdIn(String name, Pageable pageable, Collection<Long> ids);
+
+    List<ScopeDomain> findByIdIn(Collection<Long> ids);
+
+    Optional<ScopeDomain> findByNameLike(String name);
 }

@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ocoelhogabriel.security_control_custom.application.dto.PerfilModel;
 import com.ocoelhogabriel.security_control_custom.application.dto.PerfilPermissaoDTO;
-import com.ocoelhogabriel.security_control_custom.application.usecase.IPerfilPermService;
+import com.ocoelhogabriel.security_control_custom.domain.service.IPerfilPermService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;

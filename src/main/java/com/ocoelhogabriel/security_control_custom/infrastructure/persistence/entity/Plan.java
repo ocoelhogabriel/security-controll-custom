@@ -85,37 +85,6 @@ public class Plan {
 		return builder.toString();
 	}
 
-	public static Specification<Plan> filterByFields(String searchTerm, List<Long> listId) {
-		return (root, query, criteriaBuilder) -> {
-			List<Predicate> predicates = new ArrayList<>();
 
-			// Filtragem por lista de IDs da company
-			if (listId != null && !listId.isEmpty()) {
-				predicates.add(root.get("id_company").in(listId));
-			}
-
-			// Filtragem por termo de busca
-			if (searchTerm != null && !searchTerm.isEmpty()) {
-				String likePattern = "%" + searchTerm.toLowerCase() + "%";
-
-				List<Predicate> searchPredicates = new ArrayList<>();
-
-				// Adiciona predicado para o campo `name`
-				searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), likePattern));
-
-				// Tenta converter o termo de busca para Long
-				try {
-					Long searchTermLong = Long.valueOf(searchTerm);
-					searchPredicates.add(criteriaBuilder.equal(root.get("id"), searchTermLong));
-				} catch (NumberFormatException e) {
-					// Ignora se a conversão falhar
-				}
-
-				predicates.add(criteriaBuilder.or(searchPredicates.toArray(Predicate[]::new)));
-			}
-
-			return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
-		};
-	}
 
 }

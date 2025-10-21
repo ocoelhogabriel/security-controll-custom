@@ -1,6 +1,6 @@
 package com.ocoelhogabriel.security_control_custom.application.dto;
 
-import com.ocoelhogabriel.security_control_custom.infrastructure.persistence.entity.Resources;
+import com.ocoelhogabriel.security_control_custom.domain.entity.ResourcesDomain;
 
 public class RecursoDTO extends CodigoExtends {
 
@@ -44,11 +44,11 @@ public class RecursoDTO extends CodigoExtends {
 		this.descricao = descricao;
 	}
 
-	public RecursoDTO(Resources rec) {
+	public RecursoDTO(ResourcesDomain recDomain) {
 		super();
-		this.setCodigo(rec.getId());
-		this.setNome(rec.getName());
-		this.setDescricao(rec.getDescription());
+		this.setCodigo(recDomain.getId());
+		this.setNome(recDomain.getName());
+		this.setDescricao(recDomain.getDescription());
 
 	}
 

@@ -26,6 +26,10 @@ public class UserDomain {
         this.scopeDomain = scopeDomain;
     }
 
+    public UserDomain() {
+        
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
